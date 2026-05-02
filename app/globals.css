@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold:        #C9A84C;
+  --gold-light:  #E8D08A;
+  --gold-dim:    #7A6530;
+  --black:       #080808;
+  --surface:     #111111;
+  --surface-2:   #1A1A1A;
+  --surface-3:   #242424;
+  --border:      #2A2A2A;
+  --border-gold: rgba(201, 168, 76, 0.25);
+  --text:        #F0EDE6;
+  --text-muted:  #7A7870;
+  --text-dim:    #3A3830;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--black);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.35;
+}
+
+.gold-text { color: var(--gold); }
+
+.gold-gradient {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold), var(--gold-light), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.font-display { font-family: 'Cormorant Garamond', serif; }
+.font-mono-dm { font-family: 'DM Mono', monospace; }
+
+.cin-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  padding: 14px 18px;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cin-input:focus {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 1px var(--gold-dim);
+}
+
+.cin-input::placeholder { color: var(--text-muted); }
+
+.btn-gold {
+  background: linear-gradient(135deg, #7A6530, var(--gold), #E8D08A, var(--gold));
+  background-size: 200% 200%;
+  animation: shimmer 4s ease infinite;
+  color: #080808;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 14px 36px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.btn-gold:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-gold:active { transform: translateY(0); }
+.btn-gold:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  animation: none;
+  background: var(--gold-dim);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 0.5px solid var(--border);
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  padding: 12px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-ghost:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+.cin-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.cin-card-gold {
+  background: var(--surface);
+  border: 0.5px solid var(--border-gold);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 0 40px rgba(201, 168, 76, 0.04);
+}
+
+.label-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+}
+
+.gold-divider {
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
+  margin: 32px 0;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--black); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+@keyframes shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  50%       { box-shadow: 0 0 20px 4px rgba(201, 168, 76, 0.12); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-fade-up  { animation: fadeUp 0.6s ease forwards; }
+.animate-pulse-gold { animation: pulse-gold 2.5s ease-in-out infinite; }
+.animate-spin-slow  { animation: spin-slow 3s linear infinite; }
+
+.delay-100 { animation-delay: 0.1s; opacity: 0; }
+.delay-200 { animation-delay: 0.2s; opacity: 0; }
+.delay-300 { animation-delay: 0.3s; opacity: 0; }
+.delay-400 { animation-delay: 0.4s; opacity: 0; }
+.delay-500 { animation-delay: 0.5s; opacity: 0; }
