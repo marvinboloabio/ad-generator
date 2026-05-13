@@ -1,4 +1,5 @@
-import { google } from 'googleapis'
+import { drive } from '@googleapis/drive'
+import { OAuth2Client } from 'google-auth-library'
 import fs from 'fs'
 import path from 'path'
 import https from 'https'
@@ -6,7 +7,7 @@ import http from 'http'
 import { Readable } from 'stream'
 
 function getOAuthClient() {
-  return new google.auth.OAuth2(
+  return new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI
@@ -56,27 +57,28 @@ function getDriveClient() {
   } else {
     throw new Error('No Google credentials found. Visit /api/auth/google/login to authenticate.')
   }
-  return google.drive({ version: 'v3', auth: oauth2 })
+  return drive({ version: 'v3', auth: oauth2 })
 }
 
 async function uploadFile(
   filePath: string,
   fileName: string,
-  mimeType: string
+  mimeType: string,
+  folderId?: string
 ): Promise<string> {
   const drive = getDriveClient()
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
+  const resolvedFolder = folderId ?? process.env.GOOGLE_DRIVE_FOLDER_ID
 
   const fileMetadata: { name: string; parents?: string[] } = { name: fileName }
-  if (folderId) fileMetadata.parents = [folderId]
+  if (resolvedFolder) fileMetadata.parents = [resolvedFolder]
 
   const res = await drive.files.create({
     requestBody: fileMetadata,
     media: { mimeType, body: fs.createReadStream(filePath) },
     fields: 'id,webViewLink',
   })
-
   const fileId = res.data.id!
+
   await drive.permissions.create({
     fileId,
     requestBody: { role: 'reader', type: 'anyone' },
@@ -94,8 +96,8 @@ export async function downloadDriveFile(fileId: string): Promise<Buffer> {
   return Buffer.from(res.data as ArrayBuffer)
 }
 
-export async function uploadImage(filePath: string, fileName: string): Promise<string> {
-  return uploadFile(filePath, fileName, 'image/png')
+export async function uploadImage(filePath: string, fileName: string, folderId?: string): Promise<string> {
+  return uploadFile(filePath, fileName, 'image/png', folderId)
 }
 
 export async function uploadImageFromUrl(imageUrl: string, fileName: string): Promise<string> {

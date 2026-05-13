@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { loadSettings, loadKnowledgeBase } from './brandSettings'
 import { PostDraft, AssetBrief } from './draftStore'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 3 })
 
 export interface LibraryAsset {
   id: string
@@ -21,6 +21,30 @@ export interface ContentPlan {
   approach: string
 }
 
+const AWARENESS_LABELS: Record<string, string> = {
+  'unaware':        'Unaware — hindi pa nila alam na may ganitong pangangailangan',
+  'problem-aware':  'Problem Aware — alam na nila ang problema, naghahanap ng solusyon',
+  'solution-aware': 'Solution Aware — inihahambing na nila ang mga opsyon',
+  'product-aware':  'Product Aware — pamilyar na sa brand, naghahanap ng detalye o presyo',
+  'most-aware':     'Most Aware — handang kumilos, kailangan lang ng tamang alok',
+}
+
+function parseJsonArray(raw: string): WeeklyBrief[] {
+  const start = raw.indexOf('[')
+  const end = raw.lastIndexOf(']')
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error(`Claude did not return a JSON array.\n\nRaw response:\n${raw.slice(0, 400)}`)
+  }
+  const jsonStr = raw.slice(start, end + 1)
+  try {
+    return JSON.parse(jsonStr) as WeeklyBrief[]
+  } catch {
+    const repaired = jsonStr.replace(/:(\s*)"((?:[^"\\]|\\.)*)"/g, (_m, colon, val) =>
+      `${colon}"${val.replace(/(?<!\\)"/g, '\\"')}"`)
+    return JSON.parse(repaired) as WeeklyBrief[]
+  }
+}
+
 const OBJECTIVE_GUIDANCE: Record<string, string> = {
   awareness: 'Build brand recognition, community presence, and trust. Focus on brand story and park atmosphere.',
   inquiry:   'Drive service inquiries and lead generation. Highlight value, availability, and ease of inquiry.',
@@ -33,6 +57,7 @@ interface GeneratePostOptions {
   objective?: string          // awareness | inquiry | grief | promo
   awareness?: string          // problem-aware | solution-aware | unaware | most-aware
   plan?: ContentPlan          // content plan approved by human
+  brandFrameAnalysis?: string // full brand frame + hooks from proceedWithPlan
   revisionNotes?: string
   discordUserId: string
   discordUserName?: string
@@ -80,7 +105,7 @@ export async function generateContentPlan(
     ? `\nAudience awareness level: ${awareness.toUpperCase()}\n${awarenessFrames[awareness]}\nThe plan MUST follow this frame.\n`
     : ''
 
-  const kb = loadKnowledgeBase()
+  const kb = await loadKnowledgeBase()
   const kbBlock = kb ? `\nBrand knowledge base:\n${kb}\n` : ''
 
   // content-strategy principles: buyer stage awareness, lead with recommendation, searchable vs shareable balance
@@ -118,7 +143,11 @@ export async function generateContentPlan(
 
   const raw = (msg.content[0] as { text: string }).text
   const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim()
-  return JSON.parse(stripped) as ContentPlan
+  try {
+    return JSON.parse(stripped) as ContentPlan
+  } catch {
+    throw new Error(`Claude returned invalid JSON for content plan.\n\nRaw: ${raw.slice(0, 300)}`)
+  }
 }
 
 // content-humanizer: strip AI tells from a caption and make it sound like a real person wrote it
@@ -143,21 +172,32 @@ async function humanizeCaption(caption: string): Promise<string> {
 
 export async function generatePost(opts: GeneratePostOptions): Promise<GeneratedPost> {
   const s = loadSettings()
-  const kb = loadKnowledgeBase()
+  const kb = await loadKnowledgeBase()
   const kbBlock = kb ? `\n\nBrand knowledge base — use for accurate prices, services, and brand facts:\n${kb}\n` : ''
 
   const revisionBlock = opts.revisionNotes
     ? `\nRevision requested: ${opts.revisionNotes}\nPlease apply the revision notes to improve the draft.`
     : ''
 
+  const brandFrameBlock = opts.brandFrameAnalysis
+    ? `\n\n===BRAND FRAME ANALYSIS (use the hooks below as the basis for the caption)===\n` +
+      opts.brandFrameAnalysis +
+      `\n===END BRAND FRAME===\n` +
+      `IMPORTANT: The caption must be written as a natural Facebook post version of one of the hooks above. ` +
+      `Pick the hook that best matches the approved content plan's approach and rewrite it as a flowing, human caption.\n`
+    : ''
+
   const planBlock = opts.plan
-    ? `\n\nApproved content plan:\n` +
-      `- Post type: ${opts.plan.postType}\n` +
-      `- Theme: ${opts.plan.theme}\n` +
-      `- Tone: ${opts.plan.tone}\n` +
-      `- Key message: ${opts.plan.keyMessage}\n` +
-      `- Approach: ${opts.plan.approach}\n` +
-      `Follow this plan closely when writing the caption.`
+    ? `\n\n===APPROVED CONTENT PLAN — MUST FOLLOW EXACTLY===\n` +
+      `Post type: ${opts.plan.postType}\n` +
+      `Theme: ${opts.plan.theme}\n` +
+      `Tone: ${opts.plan.tone}\n` +
+      `Key message: ${opts.plan.keyMessage}\n` +
+      `Approach: ${opts.plan.approach}\n` +
+      `This plan was approved by the human. The caption MUST execute this exact theme, tone, and approach. ` +
+      `Do not substitute a different concept or default to generic brand copy. ` +
+      `The first sentence of the caption must reflect the opening hook described in the Approach above.\n` +
+      `===END PLAN===`
     : ''
 
   const jsonSchema = `{
@@ -215,8 +255,9 @@ export async function generatePost(opts: GeneratePostOptions): Promise<Generated
     `- For inquiry and promo posts: surface the hidden objection and defuse it before the CTA; re-engagement angle works when addressing people who've inquired before\n` +
     awarenessBlock +
     objectiveBlock +
-    planBlock +
     kbBlock +
+    brandFrameBlock +
+    planBlock +
     `\n\nRespond ONLY with valid JSON, no markdown:\n${jsonSchema}`
 
   let messageContent: Anthropic.MessageParam['content']
@@ -263,16 +304,187 @@ export async function generatePost(opts: GeneratePostOptions): Promise<Generated
 
   const raw = (msg.content[0] as { text: string }).text
   const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim()
-  const parsed = JSON.parse(stripped) as GeneratedPost & { selectedAssetId: string | null }
+  let parsed: GeneratedPost & { selectedAssetId: string | null }
+  try {
+    parsed = JSON.parse(stripped) as GeneratedPost & { selectedAssetId: string | null }
+  } catch {
+    throw new Error(`Claude returned invalid JSON for post.\n\nRaw: ${raw.slice(0, 300)}`)
+  }
 
-  // content-humanizer: strip AI tells before returning
-  const humanizedCaption = await humanizeCaption(parsed.caption)
+  // content-humanizer: strip AI tells before returning — fall back to original on failure
+  let humanizedCaption = parsed.caption
+  try { humanizedCaption = await humanizeCaption(parsed.caption) } catch { /* keep original */ }
 
   return {
     ...parsed,
     caption: humanizedCaption,
     selectedAssetId: parsed.selectedAssetId ?? undefined,
   }
+}
+
+// ─── Weekly batch plan ────────────────────────────────────────────────────────
+export interface WeeklyBrief {
+  templateKey: string
+  label: string
+  concept: string
+  objective: string
+  caption: string
+  hashtags: string[]
+  ctaText: string
+  engagementHook: string
+  conceptImagePrompt?: string
+  videoAdPrompt?: string
+}
+
+export async function generateBatchDrafts(
+  awareness: string,
+  selectedProblems: Array<{ text: string; objective: string }>,
+  categories: Array<{ label: string; designDirective: string; objective: string }>,
+  performanceContext?: string,
+  recentConceptsByTemplate?: Record<string, string[]>,
+  signalContext?: { signals: string[]; toneMap?: string; targetGeneration?: string },
+): Promise<WeeklyBrief[]> {
+  const s = loadSettings()
+  const kb = await loadKnowledgeBase()
+  const kbBlock = kb ? `\nKnowledge base (use for accurate prices, services, brand facts):\n${kb}\n` : ''
+  const perfBlock = performanceContext ? `\n${performanceContext}\n` : ''
+
+  const GENERATION_GUIDANCE: Record<string, string> = {
+    boomer:     'Boomers (60+): Pre-planning their own interment or choosing for a recently deceased spouse. Tone: dignified, reassuring, formal. Values: peace of mind, not burdening children, leaving a proper legacy. Short sentences, no slang.',
+    millennial: 'Millennials (30–45): Planning for aging parents, or an OFW sending money home for burial plots. Tone: sacrifice, duty, love, guilt of being far. Values: honoring parents, being prepared, not being caught off-guard. Emotional but practical.',
+    genz:       'Gen Z (18–28): Not primary buyers — they share emotional content and influence family decisions. Tone: punchy, raw, short sentences. Values: honoring lolo/lola, being the family member who cared, not letting time run out. Lead with a gut-punch hook.',
+    all:        'Broad Filipino family audience spanning multiple generations. Balance dignity, warmth, and practical value.',
+  }
+
+  const signalBlock = signalContext && signalContext.signals.length > 0
+    ? `\nTimely signals from Filipino social media this week (use naturally if they fit — do NOT force):\n` +
+      signalContext.signals.map(s => `- "${s}"`).join('\n') +
+      (signalContext.toneMap ? `\n\nDominant emotional tone this month: ${signalContext.toneMap}\nMatch this tone where appropriate.\n` : '') + '\n'
+    : ''
+
+  const generationBlock = signalContext?.targetGeneration && GENERATION_GUIDANCE[signalContext.targetGeneration]
+    ? `\nTarget generation for this ad:\n${GENERATION_GUIDANCE[signalContext.targetGeneration]}\nAdjust tone, language register, and cultural references accordingly.\n`
+    : ''
+
+  const recentBlock = recentConceptsByTemplate && Object.keys(recentConceptsByTemplate).length > 0
+    ? `\nRecently used concept angles — DO NOT reuse the same hook, premise, or emotional arc:\n` +
+      Object.entries(recentConceptsByTemplate)
+        .filter(([, concepts]) => concepts.length > 0)
+        .map(([key, concepts]) => `- ${key}: ${concepts.map(c => `"${c}"`).join(' | ')}`)
+        .join('\n') + '\n'
+    : ''
+
+  const problemList = selectedProblems
+    .map((p, i) => `${i + 1}. "${p.text}" (objective: ${p.objective})`)
+    .join('\n')
+  const categoryList = categories
+    .map((c, i) => `${i + 1}. templateKey: ${c.designDirective} | label: ${c.label} | objective: ${c.objective}`)
+    .join('\n')
+
+  const prompt =
+    `You are a Facebook ad strategist for ${s.footerRight1 ?? 'Renaissance Park'} ${s.footerRight2 ?? '& Chapels'}, a Philippine memorial park.\n` +
+    kbBlock +
+    perfBlock +
+    signalBlock +
+    generationBlock +
+    recentBlock +
+    `\nAudience level: ${AWARENESS_LABELS[awareness] ?? awareness}\n\n` +
+    `The user has selected the following specific pain points. Create one Facebook ad brief per pain point — do NOT swap or skip any.\n\n` +
+    `Selected pain points (in order — output must match this order):\n${problemList}\n\n` +
+    `Available ad templates for this audience level:\n${categoryList}\n\n` +
+    `For EACH pain point:\n` +
+    `1. Assign the BEST matching template from the list (match template objective to pain point objective; no two ads should use the same templateKey if avoidable)\n` +
+    `2. Write full Facebook ad content\n\n` +
+    `Per ad, output:\n` +
+    `- templateKey: exact designDirective value from the template list\n` +
+    `- label: template label\n` +
+    `- concept: 1 sentence — pain point + how RP specifically solves it (use KB for exact services/prices)\n` +
+    `- objective: "awareness" | "inquiry" | "promo" | "grief"\n` +
+    `- caption: 3–4 sentence Facebook caption. Lead with a thumb-stop hook — a specific scenario or bold claim, NOT a platitude. Filipino-English mix OK. No hashtags.\n` +
+    `- hashtags: array of 5–8 hashtag strings WITHOUT the # symbol\n` +
+    `- ctaText: short benefit-driven CTA e.g. "Mag-inquire Na" or "Reserve Your Lot Today"\n` +
+    `- engagementHook: 1 warm invite to tag or comment, max 12 words\n` +
+    `- conceptImagePrompt: ONLY fill this when the caption is a storytelling/emotional scene NOT visually tied to the park itself (e.g. a person at home late at night, a family moment, an OFW scenario). Write a short English image generation prompt describing the scene — cinematic, photorealistic, Filipino setting, warm lighting. Leave EMPTY STRING if the caption is park-focused (grounds, facilities, nature, chapel).\n` +
+    `- videoAdPrompt: ONLY fill this when conceptImagePrompt is also filled. Write a short English Runway video prompt describing the same scene with motion — cinematic, photorealistic, Filipino setting, use action words (e.g. 'a Filipino man slowly sets down his phone on the bed, dim room, warm glow'). Leave EMPTY STRING otherwise.\n\n` +
+    `Caption rules:\n` +
+    `- For promo objective: use real prices from the knowledge base\n` +
+    `- For grief objective: compassionate tone, no hard sell\n` +
+    `- Never open with: "In today\'s world", "Losing a loved one is never easy", generic platitudes\n` +
+    `- CRITICAL for valid JSON: do NOT use double-quote characters inside any string value. Use single quotes or rephrase instead.\n\n` +
+    `Respond ONLY with a valid JSON array (${selectedProblems.length} items), no markdown:\n` +
+    `[{"templateKey":"...","label":"...","concept":"...","objective":"...","caption":"...","hashtags":[...],"ctaText":"...","engagementHook":"...","conceptImagePrompt":"...","videoAdPrompt":"..."}, ...]`
+
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 3500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  return parseJsonArray((msg.content[0] as { text: string }).text)
+}
+
+export async function generateWeeklyBriefs(
+  count: number,
+  awareness: string,
+  problems: Array<{ text: string; objective: string }>,
+  categories: Array<{ label: string; designDirective: string; objective: string }>,
+  performanceContext?: string,
+  recentConceptsByTemplate?: Record<string, string[]>,
+): Promise<WeeklyBrief[]> {
+  const s = loadSettings()
+  const kb = await loadKnowledgeBase()
+  const kbBlock = kb ? `\nKnowledge base (use for accurate prices, services, brand facts):\n${kb}\n` : ''
+  const perfBlock = performanceContext ? `\n${performanceContext}\n` : ''
+
+  const recentBlock = recentConceptsByTemplate && Object.keys(recentConceptsByTemplate).length > 0
+    ? `\nRecently used concept angles — DO NOT reuse the same hook, premise, or emotional arc:\n` +
+      Object.entries(recentConceptsByTemplate)
+        .filter(([, concepts]) => concepts.length > 0)
+        .map(([key, concepts]) => `- ${key}: ${concepts.map(c => `"${c}"`).join(' | ')}`)
+        .join('\n') + '\n'
+    : ''
+
+  const problemList = problems.map((p, i) => `${i + 1}. "${p.text}" (objective: ${p.objective})`).join('\n')
+  const categoryList = categories.map((c, i) => `${i + 1}. templateKey: ${c.designDirective} | label: ${c.label} | objective: ${c.objective}`).join('\n')
+
+  const prompt =
+    `You are a Facebook ad strategist for ${s.footerRight1 ?? 'Renaissance Park'} ${s.footerRight2 ?? '& Chapels'}, a Philippine memorial park.\n` +
+    kbBlock +
+    perfBlock +
+    recentBlock +
+    `\nAudience level: ${AWARENESS_LABELS[awareness] ?? awareness}\n\n` +
+    `Create exactly ${count} Facebook ad briefs for a weekly content plan. No repeated pain points or templates.\n\n` +
+    `Available pain points for this audience level:\n${problemList}\n\n` +
+    `Available ad templates for this audience level:\n${categoryList}\n\n` +
+    `For each of the ${count} ads:\n` +
+    `1. Pick a DIFFERENT pain point from the list above (no repeats)\n` +
+    `2. Pick a DIFFERENT template — choose one whose objective matches or complements the pain point\n` +
+    `3. Write full Facebook ad content at the same quality as a brand frame analysis\n\n` +
+    `Per ad, output:\n` +
+    `- templateKey: exact designDirective value from the template list\n` +
+    `- label: template label\n` +
+    `- concept: 1-sentence concept — pain point + how RP specifically solves it (use KB for exact services/prices)\n` +
+    `- objective: "awareness" | "inquiry" | "promo" | "grief"\n` +
+    `- caption: 3–4 sentence Facebook caption. Lead with a thumb-stop hook (specific scenario or bold claim, NOT a platitude). Filipino-English mix OK. No hashtags.\n` +
+    `- hashtags: array of 5–8 hashtag strings WITHOUT the # symbol\n` +
+    `- ctaText: short benefit-driven CTA, e.g. "Mag-inquire Na" or "Reserve Your Lot Today"\n` +
+    `- engagementHook: 1 warm invite to tag or comment, max 12 words\n\n` +
+    `Caption rules:\n` +
+    `- For promo objective: use real prices from the knowledge base\n` +
+    `- For grief objective: compassionate tone, no hard sell\n` +
+    `- Never open with: "In today's world", "Losing a loved one is never easy", generic platitudes\n` +
+    `- Every sentence must earn its place\n` +
+    `- CRITICAL for valid JSON: do NOT use double-quote characters inside any string value. Use single quotes or rephrase instead.\n\n` +
+    `Respond ONLY with a valid JSON array, no markdown fences, no commentary:\n` +
+    `[{"templateKey":"...","label":"...","concept":"...","objective":"...","caption":"...","hashtags":[...],"ctaText":"...","engagementHook":"..."}, ...]`
+
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 3500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  return parseJsonArray((msg.content[0] as { text: string }).text)
 }
 
 export function buildFacebookCaption(draft: Pick<PostDraft, 'caption' | 'engagementHook' | 'ctaText' | 'hashtags'>): string {

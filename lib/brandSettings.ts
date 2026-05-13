@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import https from 'https'
 
 const SETTINGS_PATH = path.join(process.cwd(), 'brand-settings.json')
 
@@ -56,6 +57,13 @@ export interface BrandSettings {
   boostAgeMin: number
   boostAgeMax: number
   boostCountry: string
+  autoBoostEnabled: boolean
+
+  // Scheduled coverage check
+  coverageCheckIntervalDays: number  // 0 = disabled
+  coverageCheckHourPHT: number       // 0-23 PHT hour to fire (default 9)
+  coverageCheckChannelId: string     // Discord channel to post results in
+  coverageCheckLastRun: string       // ISO — when it last ran
 }
 
 export const DEFAULT_PROMPT_TEMPLATE = `Create Facebook ad copy for this business.
@@ -102,19 +110,66 @@ export const DEFAULT_SETTINGS: BrandSettings = {
   claudeInstructions: '',
   adPrompt:           '',
 
-  boostBudgetPHP: 250,
-  boostAgeMin:    25,
-  boostAgeMax:    60,
-  boostCountry:   'PH',
+  boostBudgetPHP:    250,
+  boostAgeMin:       25,
+  boostAgeMax:       60,
+  boostCountry:      'PH',
+  autoBoostEnabled:  false,
+
+  coverageCheckIntervalDays: 0,
+  coverageCheckHourPHT:      9,
+  coverageCheckChannelId:    '',
+  coverageCheckLastRun:      '',
 }
 
 const KB_PATH = path.join(process.cwd(), '.claude', 'skills', 'brand', 'docs', 'knowledge_base.txt')
+const KB_DOC_ID = '1PbRX81f0XueXhqo1g2AKxWrXREiSTL93njulE7VYijc'
+const KB_CACHE_TTL = 60 * 60 * 1000 // 1 hour
 
-export function loadKnowledgeBase(): string {
+const kbCache = globalThis as typeof globalThis & {
+  __kbContent?: string
+  __kbFetchedAt?: number
+}
+
+function fetchDocText(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        fetchDocText(res.headers.location).then(resolve).catch(reject)
+        return
+      }
+      const chunks: Buffer[] = []
+      res.on('data', (c: Buffer) => chunks.push(c))
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8').trim()))
+      res.on('error', reject)
+    }).on('error', reject)
+  })
+}
+
+export function loadKnowledgeBaseSync(): string {
+  if (kbCache.__kbContent) return kbCache.__kbContent
   try {
     if (fs.existsSync(KB_PATH)) return fs.readFileSync(KB_PATH, 'utf8').trim()
   } catch { /* ignore */ }
   return ''
+}
+
+export async function loadKnowledgeBase(): Promise<string> {
+  if (kbCache.__kbContent && kbCache.__kbFetchedAt && Date.now() - kbCache.__kbFetchedAt < KB_CACHE_TTL) {
+    return kbCache.__kbContent
+  }
+  try {
+    const text = await fetchDocText(`https://docs.google.com/document/d/${KB_DOC_ID}/export?format=txt`)
+    kbCache.__kbContent = text
+    kbCache.__kbFetchedAt = Date.now()
+    return text
+  } catch {
+    // network down — fall back to local copy
+    try {
+      if (fs.existsSync(KB_PATH)) return fs.readFileSync(KB_PATH, 'utf8').trim()
+    } catch { /* ignore */ }
+    return kbCache.__kbContent ?? ''
+  }
 }
 
 export function loadSettings(): BrandSettings {

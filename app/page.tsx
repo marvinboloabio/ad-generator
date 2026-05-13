@@ -212,6 +212,22 @@ export default function Dashboard() {
           >
             SETTINGS
           </a>
+          <a
+            href="/boost-stats"
+            style={{
+              padding: '8px 20px',
+              border: '1px solid #2A2A2A',
+              borderRadius: 6,
+              background: 'transparent',
+              color: '#7A7870',
+              fontFamily: 'DM Mono, monospace',
+              fontSize: 12,
+              letterSpacing: '0.1em',
+              textDecoration: 'none',
+            }}
+          >
+            BOOST STATS
+          </a>
           <button
             onClick={toggleBot}
             style={{

@@ -1,0 +1,196 @@
+[
+  {
+    "templateKey": "STORY_TEMPLATE",
+    "label": "Story",
+    "postedAt": "2026-05-06T02:31:30.000Z",
+    "fbPhotoId": "1371011188382417",
+    "fbPostId": "527444473995015_1371009688382567",
+    "boosted": true
+  },
+  {
+    "templateKey": "VISUAL_METAPHOR_TEMPLATE",
+    "label": "Visual Metaphor / Witty Filipino",
+    "postedAt": "2026-05-06T02:31:30.000Z",
+    "fbPhotoId": "1371011188382417",
+    "fbPostId": "527444473995015_1371009688382567",
+    "boosted": true
+  },
+  {
+    "templateKey": "STORY_TEMPLATE",
+    "label": "Story",
+    "postedAt": "2026-05-05T03:28:25.000Z",
+    "fbPhotoId": "1370156578467878",
+    "fbPostId": "527444473995015_1370156605134542",
+    "boosted": true
+  },
+  {
+    "templateKey": "EMOTIONAL_TEMPLATE",
+    "label": "Emotional",
+    "postedAt": "2026-05-04T11:55:05.000Z",
+    "fbPhotoId": "1369628228520713",
+    "fbPostId": "527444473995015_1369628428520693",
+    "boosted": true
+  },
+  {
+    "templateKey": "OFFER_PROMO_TEMPLATE",
+    "label": "Offer / Promo",
+    "postedAt": "2026-05-02T03:15:48.000Z",
+    "fbPhotoId": "1367703108713225",
+    "fbPostId": "527444473995015_1367703135379889",
+    "boosted": true
+  },
+  {
+    "templateKey": "PROBLEM_SOLUTION_TEMPLATE",
+    "label": "Problem → Solution",
+    "postedAt": "2026-05-02T03:15:48.000Z",
+    "fbPhotoId": "1367703108713225",
+    "fbPostId": "527444473995015_1367703135379889",
+    "boosted": true
+  },
+  {
+    "templateKey": "LIFESTYLE_TEMPLATE",
+    "label": "Lifestyle / Positioning",
+    "postedAt": "2026-04-28T08:20:25.000Z",
+    "fbPhotoId": "1364420742374795",
+    "fbPostId": "527444473995015_1364420759041460",
+    "boosted": true
+  },
+  {
+    "templateKey": "LIGHT_EMOTIONAL_TEMPLATE",
+    "label": "Light Emotional",
+    "postedAt": "2026-05-07T11:00:00.000Z",
+    "fbPhotoId": "1372028988280637",
+    "boosted": true
+  },
+  {
+    "templateKey": "EDUCATIONAL_TEMPLATE",
+    "label": "Educational",
+    "postedAt": "2026-05-08T00:00:00.000Z",
+    "fbPhotoId": "1372029064947296",
+    "boosted": true
+  },
+  {
+    "templateKey": "AUTHORITY_TEMPLATE",
+    "label": "Authority",
+    "postedAt": "2026-05-09T01:00:00.000Z",
+    "fbPhotoId": "1372029201613949",
+    "boosted": true
+  },
+  {
+    "templateKey": "COMPARISON_TEMPLATE",
+    "label": "Comparison",
+    "postedAt": "2026-05-11T00:00:00.000Z",
+    "fbPhotoId": "1372029331613936",
+    "boosted": true
+  },
+  {
+    "templateKey": "RETARGETING_TEMPLATE",
+    "label": "Retargeting",
+    "postedAt": "2026-05-13T00:00:00.000Z",
+    "fbPhotoId": "1372029424947260",
+    "boosted": true
+  },
+  {
+    "templateKey": "DIRECT_RESPONSE_TEMPLATE",
+    "label": "Direct Response",
+    "postedAt": "2026-05-14T00:00:00.000Z",
+    "fbPhotoId": "1372029531613916"
+  },
+  {
+    "templateKey": "CONVERSATIONAL_TEMPLATE",
+    "label": "Conversational",
+    "postedAt": "2026-05-15T00:00:00.000Z",
+    "fbPhotoId": "1372029651613904"
+  },
+  {
+    "templateKey": "PROBLEM_SOLUTION_TEMPLATE",
+    "label": "Problem → Solution",
+    "postedAt": "2026-05-18T00:00:00.000Z",
+    "fbPhotoId": "1376914911125378",
+    "concept": "Kapag may kamatayan, sobrang daming aayusin — Renaissance Park removes that chaos by handling the entire interment program so the family just needs to grieve, not manage logistics.",
+    "heroImageId": "asset_1777438242539_wk8zo"
+  },
+  {
+    "templateKey": "OFFER_PROMO_TEMPLATE",
+    "label": "Offer / Promo",
+    "postedAt": "2026-05-19T00:00:00.000Z",
+    "fbPhotoId": "1376915041125365",
+    "concept": "Customers who missed installments and lost their lot can reactivate their plan at Renaissance Park if the lot is still available, giving them a second chance to secure their memorial lot without starting over.",
+    "heroImageId": "asset_1777452110819_x8k4f"
+  },
+  {
+    "templateKey": "VISUAL_METAPHOR_TEMPLATE",
+    "label": "Visual Metaphor / Witty Filipino",
+    "postedAt": "2026-05-21T00:00:00.000Z",
+    "fbPhotoId": "1376915144458688",
+    "concept": "Families caught in emergency often scramble because the nearest memorial park is too far or inaccessible, but Renaissance Park sits right along the highway in Tantangan, South Cotabato — easy to reach when it matters most.",
+    "heroImageId": "asset_1777438378760_99xce"
+  },
+  {
+    "templateKey": "STORY_TEMPLATE",
+    "label": "Story",
+    "postedAt": "2026-05-22T00:00:00.000Z",
+    "fbPhotoId": "1376915291125340",
+    "concept": "Many memorial parks charge annual maintenance fees that catch families off guard, but Renaissance Park covers lawn maintenance through a perpetual care fund with no yearly charges ever.",
+    "heroImageId": "asset_1777451991195_1b2f9"
+  },
+  {
+    "templateKey": "LIGHT_EMOTIONAL_TEMPLATE",
+    "label": "Light Emotional",
+    "postedAt": "2026-05-23T01:00:00.000Z",
+    "fbPhotoId": "1376915441125325",
+    "concept": "Family conflict over burial costs during grief is avoided when parents already have a pre-arranged lot at Renaissance Park, starting at just 240 pesos a month with no annual maintenance fee.",
+    "heroImageId": "asset_1777452091466_biyd2"
+  },
+  {
+    "templateKey": "COMPARISON_TEMPLATE",
+    "label": "Comparison",
+    "postedAt": "2026-05-26T00:00:00.000Z",
+    "fbPhotoId": "1376915627791973",
+    "concept": "Customers who are already familiar with Renaissance Park but have lingering questions about lot types or chapel services are guided to inquire via Messenger, where RP's transparent pricing and flexible plans remove all confusion.",
+    "heroImageId": "asset_1777452120647_s11yg"
+  },
+  {
+    "templateKey": "SOFT_DR_TEMPLATE",
+    "label": "Soft Direct Response",
+    "postedAt": "2026-05-13T04:00:00.000Z",
+    "fbPhotoId": "1376940197789516",
+    "concept": "Para sa mga gustong mag-lubong sa private memorial park pero kulang ang ipon, inaalok ng Renaissance Park ang installment plans na nagsisimula sa P240 bawat buwan — walang downpayment, walang annual maintenance fee.",
+    "boosted": true
+  },
+  {
+    "templateKey": "SOCIAL_PROOF_TEMPLATE",
+    "label": "Social Proof",
+    "postedAt": "2026-05-16T01:00:00.000Z",
+    "fbPhotoId": "1376940334456169",
+    "concept": "Boomers who have questions about lot types and chapel services can get clear, direct answers from Renaissance Park staff without pressure or confusion."
+  },
+  {
+    "templateKey": "LIFESTYLE_TEMPLATE",
+    "label": "Lifestyle / Positioning",
+    "postedAt": "2026-05-17T00:00:00.000Z",
+    "fbPhotoId": "1376940457789490",
+    "concept": "Many Filipinos don't realize that loving someone doesn't stop at grief — it starts with preparation, and Renaissance Park offers lawn lots from as low as P240/month so families can honor their loved ones in a beautiful, peaceful place without the chaos of public cemeteries."
+  },
+  {
+    "templateKey": "EMOTIONAL_TEMPLATE",
+    "label": "Emotional",
+    "postedAt": "2026-05-20T00:00:00.000Z",
+    "fbPhotoId": "1376940607789475",
+    "concept": "When a loved one passes, the family is overwhelmed with funeral logistics — Renaissance Park's all-inclusive interment packages with a dedicated emcee, marshalls, and full program coordination remove that burden so families can just grieve and be present."
+  },
+  {
+    "templateKey": "EDUCATIONAL_TEMPLATE",
+    "label": "Educational",
+    "postedAt": "2026-05-24T00:00:00.000Z",
+    "fbPhotoId": "1376940737789462",
+    "concept": "Ang hassle ng pagpapalipat ng labi mula sa public cemetery papunta sa Renaissance Park ay nababawasan dahil ang RP ay may malinaw na proseso para sa bone interment at exhumation coordination, with packages starting at P9,500."
+  },
+  {
+    "templateKey": "AUTHORITY_TEMPLATE",
+    "label": "Authority",
+    "postedAt": "2026-05-25T00:00:00.000Z",
+    "fbPhotoId": "1376940807789455",
+    "concept": "Boomers who lost their installment plan due to forfeiture can restart their memorial lot ownership at Renaissance Park, which allows reactivation of forfeited accounts if the lot is still available — giving them a second chance without starting from zero in terms of decision-making."
+  }
+]

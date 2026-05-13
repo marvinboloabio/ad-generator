@@ -11,7 +11,6 @@ export function esc(s: string | undefined | null): string {
           .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-
 export function buildAdHTML(
   content: AdContent,
   heroUri: string,
