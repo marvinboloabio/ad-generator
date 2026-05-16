@@ -10,8 +10,10 @@ export interface CoverageEntry {
   fbPhotoId?: string // FB photo attachment ID — used for existence check + boosting
   fbPostId?: string  // FB feed post ID (pageId_objectId) — used for insights
   concept?: string   // one-line concept/hook — used to avoid repeating similar angles
-  boosted?: boolean  // true once auto-boost has fired for this post
+  boosted?: boolean  // true once auto-boost has fired for this post (success OR given up)
   heroImageId?: string // Drive image ID used as hero — used to avoid repeating same background
+  boostAttempts?: number  // failed auto-boost attempts so far (capped before giving up)
+  boostError?: string     // last failure message — for debugging
 }
 
 function load(): CoverageEntry[] {
@@ -85,6 +87,43 @@ export function markBoosted(templateKey: string, postedAt: string): void {
   ))
 }
 
+// Move a coverage entry's postedAt when its FB schedule is changed via
+// `shift posts` or `reschedule post`. Matches the entry whose postedAt is
+// closest to oldPostedAt (within 60s) so we tolerate sub-second FB rounding.
+// Returns true if a row was updated.
+export function updatePostedAt(oldPostedAt: string | Date, newPostedAt: string | Date): boolean {
+  const entries = load()
+  const oldMs = new Date(oldPostedAt).getTime()
+  const newIso = new Date(newPostedAt).toISOString()
+  const idx = entries.findIndex(e => Math.abs(new Date(e.postedAt).getTime() - oldMs) < 60_000)
+  if (idx === -1) return false
+  entries[idx] = { ...entries[idx], postedAt: newIso }
+  save(entries)
+  return true
+}
+
+// Record an auto-boost failure. After `giveUpAfter` total failures the entry
+// is force-marked as boosted so the retry loop stops. Returns the new attempt
+// count and whether we gave up (so caller can log it).
+export function recordBoostFailure(
+  templateKey: string,
+  postedAt: string,
+  errorMsg: string,
+  giveUpAfter = 3,
+): { attempts: number; gaveUp: boolean } {
+  const entries = load()
+  let attempts = 0
+  let gaveUp = false
+  const next = entries.map(e => {
+    if (e.templateKey !== templateKey || e.postedAt !== postedAt) return e
+    attempts = (e.boostAttempts ?? 0) + 1
+    gaveUp = attempts >= giveUpAfter
+    return { ...e, boostAttempts: attempts, boostError: errorMsg, boosted: gaveUp ? true : e.boosted }
+  })
+  save(next)
+  return { attempts, gaveUp }
+}
+
 // Mark every not-yet-boosted entry as boosted (used to silence retry loops on
 // known-broken entries that we don't want auto-boost to keep retrying).
 // onlyPast: if true, only mark entries whose postedAt is already in the past —
@@ -117,6 +156,24 @@ export function patchPostIds(photoToPostId: Map<string, string>): number {
   })
   if (patched > 0) save(updated)
   return patched
+}
+
+// Reset entries auto-boost gave up on so they're eligible for retry. Clears
+// boosted=true (only if it was set by the give-up logic — boostError present),
+// resets attempt counter, and removes the cached error.
+// Returns number of entries reset.
+export function clearGiveUpState(): number {
+  const entries = load()
+  let cleared = 0
+  const updated = entries.map(e => {
+    if (e.boosted === true && e.boostError) {
+      cleared++
+      return { ...e, boosted: false, boostAttempts: 0, boostError: undefined }
+    }
+    return e
+  })
+  if (cleared > 0) save(updated)
+  return cleared
 }
 
 // Deduplicate entries — keep only the most recent entry per (templateKey, fbPostId) pair.

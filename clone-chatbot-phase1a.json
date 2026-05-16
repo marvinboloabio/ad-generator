@@ -1,0 +1,3180 @@
+{
+  "name": "clone chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "imageautomation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -6624,
+        1216
+      ],
+      "id": "45dd6c4b-1251-40a3-8098-0669fa1307be",
+      "name": "Webhook",
+      "webhookId": "d2428c2d-6cd7-436b-9863-da63412dc0c5"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -6048,
+        1040
+      ],
+      "id": "8c4e7b39-3957-4327-a0e0-372d01eb29e1",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5b98c122-79b7-4c03-be9c-86bd14827edc",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "687325fa-2b5d-45ae-bdc5-072bb0101931",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "customerchatbot",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -6352,
+        1056
+      ],
+      "id": "d1ed0f46-29bb-41ea-822f-e79830eb5b6b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const messaging = $('Webhook').first().json.body.entry[0].messaging[0];\nif (!messaging) {\n  return [];\n}\n\nconst isEcho = messaging?.message?.is_echo === true;\nconst appId = messaging?.message?.app_id;\nconst metadata = messaging?.message?.metadata;\n\n\nif (isEcho && appId) {\n  console.log(\"Skipping bot echo message\");\n  return [];\n}\n\nif (isEcho && !appId) {\n  console.log(\"Processing human agent response\");\n  return [$input.item];\n}\n\nconst hasText = messaging?.message?.text;\nconst hasAttachments = messaging?.message?.attachments?.length > 0;\nconst isDelivery = !!messaging?.delivery;\nconst isRead = !!messaging?.read;\nconst isPostback = !!messaging?.postback;\n\n// Skip if it's a delivery/read receipt or postback, but allow text OR attachments\nif (isDelivery || isRead || isPostback) {\n  return [];\n}\n\n// Must have either text or attachments\nif (!hasText && !hasAttachments) {\n  return [];\n}\n\nconst timestamp = messaging?.timestamp;\nif (!timestamp) {\n  return [];\n}\n\nconst messageTime = timestamp;\nconst now = Date.now();\nconst fiveMinutesAgo = now - (5 * 60 * 1000);\n\nif (messageTime < fiveMinutesAgo) {\n  console.log(`Skipping old message from ${Math.floor((now - messageTime) / 1000 / 60)} minutes ago`);\n  return [];\n}\n\nif (hasText) {\n  console.log(`Processing valid message: \"${messaging.message.text}\"`);\n} else if (hasAttachments) {\n  console.log(`Processing message with ${hasAttachments.length} attachment(s)`);\n}\n\nreturn [$input.item];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5456,
+        1344
+      ],
+      "id": "ad60d967-f8e7-40f4-ba55-2e57f21743bd",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/918531391347250/messages?access_token=EAAW0ke1zPyoBRYJZBOw8ICBltrz2tzBkWsZA4y7XxyRYaqJKJGWwbw7f3lhdVxiR1ejEgDIYKtjgjui0J0v8UQx3vo92Rh2mP0l1wNUKN9ZBNi3LMI6L3h3wTaJmzQYOtkptJ31SLjdlXNRrbF8UE2uAo8pEhbeDPKdSFbwMKPkU7NeFsNd4RnjFhFNR98hZCcEn",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.sender }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $json.sanitizedOutput }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2304,
+        1696
+      ],
+      "id": "9d01ab91-b6d3-454c-8603-bfb31f777142",
+      "name": "RESPONSE"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        1328
+      ],
+      "id": "7d5d9110-bbc1-4884-ad2e-36442fa278fb",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }} ",
+        "options": {
+          "systemMessage": "=You are a STRICT context-aware rule-based classifier for Renaissance Park & Chapels.\nYou must classify based on EXPLICIT TEXT and CONVERSATION CONTEXT.\nYou have access to conversation history - USE IT to understand what the customer is responding to.\n\n## TASK:\nClassify the customer message into ONLY ONE intent:\n**PURCHASE, COMPLAINT, DECLINE, MISMATCH_LEAD, PRICING, INQUIRY, TICKET, REFERRAL, BENEFICIARY, or PAYMENT_QUERY**\n\n## IMPORTANT:\n- Check conversation context FIRST before applying standalone rules\n- If a required condition is missing, you MUST NOT guess\n- If unsure, ALWAYS return INQUIRY\n\n==================================\n## PRIORITY 0: CLM-SPECIFIC INTENTS (CHECK FIRST)\n\nThese new intents come from the Customer Lifecycle Management spec. They take precedence over the general rules below when their signals are clearly present.\n\n### CHECK TICKET — Filing or tracking a support ticket\nReturn **TICKET** if the message explicitly:\n- Mentions filing a ticket: \"file a ticket\", \"submit a ticket\", \"open a ticket\", \"create a ticket\", \"log a ticket\", \"raise a ticket\"\n- References an existing ticket: contains \"ticket ID\", \"ticket number\", \"ticket #\", or a ticket code like \"TKT-...\"\n- Asks for ticket status: \"status of my ticket\", \"any update on my ticket\", \"track my ticket\"\n\nDo NOT return TICKET for a generic complaint with no mention of a ticket — those remain COMPLAINT (see STEP 5).\n\n### CHECK REFERRAL — Mentioning a referrer\nReturn **REFERRAL** if the message contains a clear referrer attribution:\n- \"I was referred by [name]\"\n- \"[name] referred me\"\n- \"I'm referring my [friend/relative]\"\n- \"Pina-refer ako ni [name]\"\n- \"Galing kay [name]\" (with name) in an inquiry context\n\n### CHECK BENEFICIARY — Account transfer / death certificate / beneficiary application\nReturn **BENEFICIARY** if the message contains:\n- \"beneficiary\", \"transfer of rights\", \"transfer the account\", \"transfer ng account\"\n- \"death certificate\", \"namatay\", \"pumanaw\", \"passed away\", \"deceased\", \"yumao\"\n- \"I am the beneficiary\", \"ako ang beneficiary\"\n- Asking how to take over a deceased holder's account\n\n### CHECK PAYMENT_QUERY — Existing-account payment / SOA / balance / receipt question\nReturn **PAYMENT_QUERY** if the message refers to an EXISTING account or payment (not a new purchase):\n- \"my balance\", \"my SOA\", \"my statement of account\", \"balance ko\"\n- \"I already paid but...\", \"payment not reflected\", \"no receipt\", \"wala pang receipt\"\n- \"monthly amortization status\", \"remaining balance\", \"natitirang balance\"\n- \"I want to settle my account\", \"settle my account\"\n\n⚠️ Do NOT confuse with PRICING (which asks \"how much for a NEW lot\"). PAYMENT_QUERY refers to an EXISTING account.\n\n**If NONE of the four CLM intents above clearly apply, continue to the rules below.**\n\n==================================\n## PRIORITY 1: CHECK CONVERSATION CONTEXT\nBEFORE applying any standalone rules, check if the customer is RESPONDING to a previous bot question.\n\n### Context Rule 1: Complaint Confirmation Response\nIF the previous bot message asked about filing/logging a complaint (phrases like \"Would you like to file a complaint?\" or \"Do you want to log this as a complaint?\"):\nAND customer responds with:\n- \"Yes\", \"Oo\", \"Okay\", \"Sure\", \"Go ahead\", \"Please\", \"I confirm\", \"Sige\"\n→ Return **COMPLAINT**\n\n### Context Rule 2: Contact Details Request Response\nIF the previous bot message asked for contact details (name, phone, email):\nAND customer provides name + contact in their response:\n→ Return **PURCHASE**\n\n### Context Rule 3: Proceed/Continue Confirmation\nIF the previous bot message asked \"Do you want to proceed/continue/go ahead?\":\nAND customer responds:\n- \"No thanks\", \"Not interested\", \"Cancel\", \"Never mind\", \"Hindi na\", \"Wag na\"\n→ Return **DECLINE**\n- \"Yes\", \"Oo\", \"Proceed\", \"Continue\", \"Sige\", \"Go ahead\"\n→ Return **INQUIRY** (they want to continue, need more info)\n\n### Context Rule 4: General Interest/Availability Check\nIF the previous bot message asked \"Are you interested?\" or \"Would you like to know more?\":\nAND customer responds:\n- \"No thanks\", \"Not interested\", \"No\", \"Hindi\"\n→ Return **DECLINE**\n- \"Yes\", \"Interested\", \"Tell me more\", \"Oo\"\n→ Return **INQUIRY**\n\n**If NO relevant context exists in conversation history, proceed to standalone rules below.**\n\n==================================\n## STANDALONE RULES (No Context)\n\n### STEP 1: CHECK DECLINE (EXPLICIT REJECTION)\nReturn **DECLINE** ONLY IF the message EXPLICITLY STATES they do NOT want to proceed or are NOT interested.\n\n**Allowed explicit decline phrases:**\n- \"No thanks\"\n- \"Not interested\"\n- \"I don't want\"\n- \"I don't need\"\n- \"No need\"\n- \"Cancel\"\n- \"Never mind\"\n- \"I changed my mind\"\n- \"Not anymore\"\n- \"Don't want to proceed\"\n- \"I'll pass\"\n- \"No longer interested\"\n- \"Withdraw\"\n- \"Remove me\"\n- \"Stop\"\n\n**Tagalog/Filipino decline phrases:**\n- \"Hindi na\" (not anymore)\n- \"Ayaw ko na\" (I don't want anymore)\n- \"Wag na\" (don't want)\n- \"Hindi na ako interested\"\n- \"Cancel na lang\"\n- \"Wag na po\"\n- \"Hindi na po\"\n- \"Ayoko na\"\n\n⚠️ **Do NOT return DECLINE if:**\n- \"Maybe later\" or \"I'll think about it\" → INQUIRY\n- \"Let me check\" or \"I need to consider\" → INQUIRY\n- \"Not now\" or \"Not yet\" → INQUIRY\n- Just expressing concerns or asking questions → INQUIRY\n\n**If explicit decline is stated → Return DECLINE**\n\n---\n\n### STEP 2: CHECK MISMATCH_LEAD (LOOKING FOR DIFFERENT PRODUCT/SERVICE)\nReturn **MISMATCH_LEAD** ONLY IF the customer is clearly looking for something the business does NOT offer.\n\n**Indicators:**\n1. Specific products/services not provided\n2. Geographic mismatch (location outside service area)\n3. Budget significantly below minimum\n4. Property type mismatch (house & lot when only lots are sold, etc.)\n\n**CRITICAL:** Only return MISMATCH_LEAD when it's CLEAR the customer needs something definitely not offered. If there's ANY possibility of fit, return INQUIRY.\n\n---\n\n### STEP 3: CHECK PRICING (NEW LOT PRICE QUESTION)\nReturn **PRICING** if the customer is asking about prices/costs for a NEW lot or service.\n\n**Keywords:** \"How much\", \"Price\", \"Cost\", \"Magkano\", \"Presyo\", \"Halaga\", \"Pricelist\", \"Price range\", \"Down payment\", \"Monthly\", \"Installment\"\n\n⚠️ If the question is about an EXISTING account balance/SOA/receipt, return PAYMENT_QUERY instead (see Priority 0).\n\n---\n\n### STEP 4: CHECK PURCHASE (NAME + CONTACT REQUIRED)\nReturn **PURCHASE** ONLY IF ALL conditions are MET:\n1. Message contains a PERSON NAME (real full name)\n2. AND a CONTACT DETAIL (phone OR email)\n3. Both present in the SAME message (not promised, not implied, not in a question)\n\n**Examples:**\n- ✓ \"I'm Juan Dela Cruz 09171234567\"\n- ✓ \"Maria Santos maria@email.com\"\n- ✗ \"I want to proceed\" (no name/contact)\n- ✗ \"My name is Juan\" (no contact)\n\n---\n\n### STEP 5: CHECK COMPLAINT (EXPLICIT COMPLAINT MENTION)\nReturn **COMPLAINT** ONLY IF the message EXPLICITLY MENTIONS filing/logging a complaint.\n\nA simple \"Yes\" alone is NOT enough unless responding to a complaint question (see Context Rule 1).\n\n**Triggers:**\n- \"File a complaint\", \"Log a complaint\", \"Register a complaint\", \"Submit a complaint\"\n- \"Magreklamo\", \"Gusto ko magreklamo\", \"Complaint po\"\n- \"Yes\" + \"complaint/complain\" in the same message\n\nDescribing a problem WITHOUT saying \"complaint\" → INQUIRY (not COMPLAINT).\n\nIf the customer explicitly mentions filing a TICKET → use TICKET (Priority 0) instead.\n\n---\n\n### STEP 6: DEFAULT → INQUIRY\nReturn **INQUIRY** if:\n- Asking questions / about process / about availability\n- Expressing concern WITHOUT explicit complaint filing\n- No name + contact provided\n- \"Maybe later\", \"I'll think about it\", \"Not now\", \"Not yet\"\n- General \"Yes\", \"Okay\", \"Interested\" without specific context\n- Describing a problem without saying \"complaint\"\n- You are unsure\n\n==================================\n## OUTPUT RULES:\nReturn ONLY ONE WORD:\n- PURCHASE\n- COMPLAINT\n- DECLINE\n- MISMATCH_LEAD\n- PRICING\n- INQUIRY\n- TICKET\n- REFERRAL\n- BENEFICIARY\n- PAYMENT_QUERY\n\n**No explanation. No punctuation. No extra text. No reasoning.**\n\n==================================\n## EXAMPLES WITH CONTEXT:\n\n- Bot asks \"file a formal complaint?\", Customer: \"Yes\" → **COMPLAINT**\n- Customer: \"Yes\" (no complaint context) → **INQUIRY**\n- Customer: \"Hindi na po, cancel na lang\" → **DECLINE**\n- Customer: \"Juan Dela Cruz 09171234567\" (after bot asked for details) → **PURCHASE**\n- Customer: \"I want to file a ticket about my lot\" → **TICKET**\n- Customer: \"What's the status of ticket TKT-2024-001?\" → **TICKET**\n- Customer: \"I was referred by Pedro Reyes\" → **REFERRAL**\n- Customer: \"My father passed away, I'm the beneficiary\" → **BENEFICIARY**\n- Customer: \"My monthly payment hasn't reflected yet\" → **PAYMENT_QUERY**\n- Customer: \"How much is a lawn lot?\" → **PRICING**\n- Customer: \"Magkano po ang remaining balance ko?\" → **PAYMENT_QUERY** (existing account)\n- Customer: \"Do you have lots in Manila?\" (not served) → **MISMATCH_LEAD**\n- Customer: \"I have a problem with my order\" → **INQUIRY** (no \"complaint\" word)\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1728,
+        1616
+      ],
+      "id": "abeb331d-9079-4760-8054-d6d86d8194a6",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bddba7de-f06b-4f8a-b6e3-9b8a9e6fa289",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "PURCHASE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "5b4d6bab-8156-42be-97f0-f4999ca722d4",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "COMPLAINT",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "1d2d0f36-f161-4679-b78d-782ea3030f1f",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "DECLINE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "466026cc-9350-4c65-b4b1-c676d3099997",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "MISMATCH_LEAD",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "9a3b2b79-b391-468c-8961-44c272bc559a",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "PRICING",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1184,
+        1616
+      ],
+      "id": "518dfd7a-2b76-469f-a8e9-c447ea6ee70f",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "de584426-d38e-401d-940e-466d81e511a5",
+              "leftValue": "={{ $('HTTP Request').item.json.status }}",
+              "rightValue": "Open",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3664,
+        1344
+      ],
+      "id": "dbcddc8b-c4f4-4804-a82b-dd7347826489",
+      "name": "If3",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -2528,
+        1472
+      ],
+      "id": "b370c8d6-f6dc-4fff-aafa-a6442bef711c",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1856,
+        1760
+      ],
+      "id": "876de0c9-5efd-4bc9-9763-583766797e5a",
+      "name": "Wait",
+      "webhookId": "0abecd24-c39a-46cd-9a56-46bf2f8a9906"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "OPEN",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e58f0a73-4fd3-4ff9-80af-7082345e0753"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2ec38761-7fbe-4062-9cee-e8148bc4013e",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "OPEN",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3072,
+        976
+      ],
+      "id": "76e50e5e-cccd-4972-822a-e222edccf98f",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a71f4ca4-610a-4c6c-ba97-df1f9e41c6de",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+              "rightValue": "hi",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "3bb2e2a4-aadb-42e8-abdf-c0f97b59ffa7",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+              "rightValue": "hello",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3072,
+        1456
+      ],
+      "id": "9a403cee-9ec3-4c7d-99c5-3819998d93f9",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw AI or dynamic text\nconst rawText = $json.output || $input.first().json.message.content || \"\";\nconst sender = $('Webhook').first().json.body.entry[0].messaging[0].sender.id || \"\";\nconst reciever = $('Webhook').first().json.body.entry[0].messaging[0].recipient.id || \"\";\n\n// Sanitize text for JSON / messaging APIs\nconst sanitizedText = rawText\n  .replace(/\\\\/g, \"\\\\\\\\\")        // Escape backslashes\n  .replace(/\"/g, '\\\\\"')         // Escape double quotes\n  .replace(/\\r?\\n|\\r/g, \"\\\\n\")  // Convert line breaks to \\n\n  .replace(/\\t/g, \" \")          // Replace tabs with space\n  .trim();\n\n// Return clean output\nreturn [\n  {\n    json: {\n      sanitizedOutput: sanitizedText,\n      sender : sender,\n      receiver : reciever\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        1760
+      ],
+      "id": "9d49830a-7c3b-410f-af04-448efb4ec764",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.content\n  .replace(/\\n{5,}/g, '\\n\\n') // reduce multiple blank lines to a single blank line\n  .trim();\n\nreturn [{ json: { instruction: text } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        1760
+      ],
+      "id": "d7523c98-2bca-4699-a025-a596ae3e63df",
+      "name": "Code in JavaScript6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst instruction = items.find(i => i.json?.instruction)?.json?.instruction;\n// const pricelist = items.find(i => i.json?.text)?.json?.text;\n\nconst webhook = $('Webhook').first()?.json?.body;\nconst message = webhook?.entry?.[0]?.messaging?.[0]?.message?.text;\nconst senderID = webhook?.entry?.[0]?.messaging?.[0]?.sender?.id;\nconst classifierMemory = webhook?.entry?.[0]?.messaging?.[0]?.sender?.id+ '-response';\n\nreturn [{\n  json: {\n    message,\n    instruction,\n    senderID,\n    classifierMemory,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        1760
+      ],
+      "id": "578d734a-7e41-4b44-913a-f1f728d97424",
+      "name": "Code in JavaScript7"
+    },
+    {
+      "parameters": {
+        "content": "## Generate Response\n",
+        "height": 624,
+        "width": 2928
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -384,
+        1552
+      ],
+      "typeVersion": 1,
+      "id": "dc25e5d3-232d-4ea9-afa7-b337ae9e357a",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Human Response",
+        "height": 448,
+        "width": 1488
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        1056
+      ],
+      "typeVersion": 1,
+      "id": "8e709191-1a67-4067-af70-085e508f87d3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -1952,
+        1776
+      ],
+      "id": "5878d111-c58a-46b6-a60f-fc22bb1ecac6",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "OY7M7u8riRfDrZ0D",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        2000
+      ],
+      "id": "4523254d-19f0-45b2-99af-cdd5949b75ea",
+      "name": "DeepSeek Chat Model1",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "OY7M7u8riRfDrZ0D",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -4416,
+        1344
+      ],
+      "id": "7a55b915-a5b6-4b27-b23b-a2bd501190a7",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/fetchpsid/{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4080,
+        1344
+      ],
+      "id": "740868e5-f11a-49c8-abc2-9ef21b77dfec",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"conversation_id\": 0,\n  \"customer_psid\": \"{{ String($('Webhook').item.json.body.entry[0].messaging[0].sender.id) }}\"\n,\n  \"conversation_name\": \"NONE\",\n  \"assigned_status\": \"N8N Bot\",\n  \"assigned_agent\": \"bot\",\n  \"status\": \"OPEN\",\n  \"last_message\": \"{{ $('Edit Fields').item.json.safe_text }}\",\n  \"transfer_count_bot\": 0,\n  \"transfer_count_human\": 0,\n  \"date_created\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\",\n  \"lead_stage\": \"Intake\",\n  \"relationship_stage\": \"Neutral\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -3056,
+        1616
+      ],
+      "id": "9ecb9557-f2cc-4039-a78c-db09b491affc",
+      "name": "New Customer"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://wheat-capybara-997939.hostingersite.com/api/conversation/updateConversation",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"last_message\": \"{{ $('Edit Fields').item.json.safe_text }}\",\n  \"date_created\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -3072,
+        1184
+      ],
+      "id": "7c03fa34-c2bb-40b2-b230-7d28dc0750b4",
+      "name": "Update Conversation"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updatestatuslogs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"status\": \"OPEN\",\n  \"date_created\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2528,
+        1136
+      ],
+      "id": "ac3b14bd-4c96-484d-94c9-e96b1e6cf95c",
+      "name": "Update Status"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updatestatuslogs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"status\": \"{{ $json.output }}\",\n  \"date_created\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        432,
+        1136
+      ],
+      "id": "070e4f80-ecf7-4d83-9a21-e74db64c1d15",
+      "name": "Update Status1"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "get",
+        "documentURL": "https://docs.google.com/document/d/1bRB3Tkxd1GrCcKv7u3apV4eTysMg2h-rxvX-ahxeEio/edit?usp=sharing"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        448,
+        1904
+      ],
+      "id": "e8853056-fa10-4852-a068-8c540ea9aa51",
+      "name": "Agent Rules",
+      "credentials": {
+        "googleApi": {
+          "id": "r0XCETL9KDFrxBYg",
+          "name": "Google Cloud"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "You are a Helpful chatbot",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "includeDocumentMetadata": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1728,
+        1968
+      ],
+      "id": "a1033e56-c8b1-4274-9f68-b66075b264be",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bo6mUO71QxAv1mk8",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1504,
+        2016
+      ],
+      "id": "36a759c0-201e-49e0-8c6e-3b122ba2a75f",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "km11eoQzYIuV2026",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateConversation",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"last_message\": \"{{ $('Edit Fields').item.json.safe_text }}\",\n  \"date_created\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2528,
+        960
+      ],
+      "id": "458b110e-4c3f-45ed-995b-c3f6779a86d0",
+      "name": "Update Conversation1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        1344
+      ],
+      "id": "0ef62d97-e978-46a4-a3c0-da4ef45f5f06",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/automationdashboard",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"conversation_status\": \"{{ $json.output }}\",\n  \"conversation_updated_from\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\",\n  \"conversation_updated_to\": null\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        272,
+        1344
+      ],
+      "id": "f8206fb2-57cb-49a5-b1a7-be015488e3b2",
+      "name": "Update Status4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "41d6dc7c-ab28-436a-ab39-e0e097dce21b",
+              "name": "safe_text",
+              "value": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text.replace(/\\r?\\n/g, \"\\\\n\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4736,
+        1344
+      ],
+      "id": "8d508e6e-bb45-431b-bb65-587d70246ff4",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b3b4a922-4542-4d30-8c80-764d60b289fc",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.is_echo }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2048,
+        1792
+      ],
+      "id": "cb71358a-a68b-458f-9e05-fbd0c4e709ec",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAW0ke1zPyoBRYJZBOw8ICBltrz2tzBkWsZA4y7XxyRYaqJKJGWwbw7f3lhdVxiR1ejEgDIYKtjgjui0J0v8UQx3vo92Rh2mP0l1wNUKN9ZBNi3LMI6L3h3wTaJmzQYOtkptJ31SLjdlXNRrbF8UE2uAo8pEhbeDPKdSFbwMKPkU7NeFsNd4RnjFhFNR98hZCcEn\n",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.sender }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $json.sanitizedOutput }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2304,
+        1872
+      ],
+      "id": "c16def94-d805-4f32-b162-393aa0eaf008",
+      "name": "RESPONSE1"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateBot",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"status\": \"{{ $json.data.status }}\",\n  \"transfer_count_bot\":{{ $('HTTP Request').item.json.transfer_count_bot }} ,\n  \"transfer_count_human\": {{ $('HTTP Request').item.json.transfer_count_human + 1}}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        656,
+        1136
+      ],
+      "id": "c557a678-11c1-439c-a040-b1fa3145ad41",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateBot",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"status\": \"{{ $json.conversation_status }}\",\n  \"transfer_count_bot\":{{ $('HTTP Request').item.json.transfer_count_bot }} ,\n  \"transfer_count_human\": {{ $('HTTP Request').item.json.transfer_count_human + 1}}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        640,
+        1344
+      ],
+      "id": "2b6f0809-1b19-42ef-a62f-511865b00a13",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }} ",
+        "options": {
+          "systemMessage": "=You are a STRICT rule-based classifier.\nYou must NOT infer intent.\nYou must ONLY classify based on EXPLICIT SIGNALS found in the message.\nYou must NOT rely on exact phrases.\nYou must classify using explicit slots/signals only.\nTASK\nClassify the customer message into ONLY ONE intent:\nOFFICE_VISIT\nSHOW_INTEREST\nINQUIRY\nGLOBAL RULES (MANDATORY)\nDo NOT guess\nDo NOT infer meaning\nDo NOT assume intent\nDo NOT rely on tone\nIf unsure -> ALWAYS return INQUIRY\nDecision must be explainable by explicit text signals\nOnly detect what is literally present in the text\nSLOT DEFINITIONS (EXPLICIT SIGNALS ONLY)\nSLOT A: ACTION TYPE (must be explicitly stated)\nDetect ONLY if these exact action words appear:\nPHYSICAL_MOVEMENT: pupunta, magpupunta, visit, darating, punta, go, come\nDESIRE_OR_ACQUISITION: gusto, want, bili, buy, purchase, kuha, get, take, avail, bibili, kukuha\nQUESTION_OR_REQUEST: paano, how, ano, what, pwede, can, may, saan, where, kailan, when, magkano, tanong, ask\nIf ACTION TYPE is unclear or absent -> treat as QUESTION_OR_REQUEST\nSLOT B: LOCATION TYPE\nDetect ONLY if these exact words appear:\noffice, branch, opisina, location name\nSLOT C: TIME SIGNAL\nDetect ONLY if these exact time indicators appear:\nspecific date (Jan 20, 01/20, etc.)\nspecific time (8am, 2pm, 14:00, etc.)\ntoday, bukas, tomorrow, Monday, Tuesday, etc.\nSLOT D: STATEMENT FORM\nDECLARATIVE: no question words, ends with period or none\nQUESTION: has question words (paano, ano, sino, saan, kailan, magkano) OR ends with question mark\nSLOT E: BENEFICIARY (for someone else)\nDetect ONLY if these exact phrases appear:\npara sa + person, for my + person, for + person\nperson names: mother, father, mom, dad, parents, nanay, tatay, magulang, son, daughter, anak, friend, kaibigan, asawa, wife, husband\nSLOT F: COMMITMENT LEVEL\nHIGH: gusto ko bumili, I want to buy, bibili ako, kukuha ako, I will get\nLOW: tanong lang, just asking, ask ko lang, pagtanong, inquiry lang, i reply lang, check lang, tingnan lang\nCLASSIFICATION LOGIC\nSTEP 1: CHECK OFFICE_VISIT (HIGHEST PRIORITY)\nReturn OFFICE_VISIT ONLY IF ALL THREE are present:\n- PHYSICAL_MOVEMENT action word detected\n- LOCATION word detected\n- TIME SIGNAL detected\n- STATEMENT FORM = DECLARATIVE\nExample: \"Pupunta ako sa office bukas\"\nIf ANY is missing -> NOT OFFICE_VISIT\nSTEP 2: CHECK SHOW_INTEREST\nReturn SHOW_INTEREST ONLY IF:\n- DESIRE_OR_ACQUISITION action word detected\n- Product/service/lot/unit mentioned\n- STATEMENT FORM = DECLARATIVE\n- COMMITMENT LEVEL = HIGH (or neutral, NOT low)\nOR if BENEFICIARY detected:\n- DESIRE_OR_ACQUISITION action word detected\n- BENEFICIARY phrase detected\n- COMMITMENT LEVEL = HIGH (or neutral, NOT low)\nExample: \"Gusto ko bumili ng lot\"\nExample: \"Bibili ako para sa parents ko\"\nIf \"tanong lang\" or \"ask ko lang\" detected -> NOT SHOW_INTEREST\nIf QUESTION form -> NOT SHOW_INTEREST\nSTEP 3: DEFAULT TO INQUIRY\nReturn INQUIRY if:\n- QUESTION form detected\n- LOW COMMITMENT detected\n- ACTION TYPE = QUESTION_OR_REQUEST\n- Missing slots for OFFICE_VISIT\n- Missing slots for SHOW_INTEREST\n- Uncertain or mixed signals\nOUTPUT RULES (STRICT)\nReturn ONLY ONE WORD\nNo explanation\nNo punctuation\nNo extra text\nAllowed outputs ONLY:\nOFFICE_VISIT\nSHOW_INTEREST\nINQUIRY"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1040,
+        2144
+      ],
+      "id": "f3b1a257-31b1-4197-b7a6-b1c705666e41",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -1232,
+        2448
+      ],
+      "id": "88bb2af6-cfa8-4ef8-8bea-2a41a1b05867",
+      "name": "DeepSeek Chat Model2",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "OY7M7u8riRfDrZ0D",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        2288
+      ],
+      "id": "8831ed8d-61df-4765-b528-c0c01abfcd3b",
+      "name": "No Operation, do nothing3"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateLeadsStatus",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"lead_stage\": \"Closing\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        992,
+        1136
+      ],
+      "id": "b5b9f412-2304-4357-abb7-3346dcd10f30",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateLeadsStatus",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"lead_stage\": \"Qualified\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        304,
+        2288
+      ],
+      "id": "f403b452-d555-4640-ad52-118f807c6d67",
+      "name": "Qualified Leads"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "SHOW_INTEREST",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e3dee130-bfe4-4c2c-a4fe-6a91154c1097"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "582fcb5c-2167-4de9-984d-40e1fa741d4b",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "OFFICE_VISIT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5d18c274-2288-4276-9d19-6935aa9c1f5e",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "INQUIRY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -528,
+        2384
+      ],
+      "id": "96986256-865e-46f3-8541-6f4d906dfdca",
+      "name": "Switch2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        304,
+        2624
+      ],
+      "id": "94d877e4-59fd-4144-aa90-5ee18e226d12",
+      "name": "No Operation, do nothing6"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        2448
+      ],
+      "id": "be9812b6-c408-4d51-bfb4-9e66d5035b28",
+      "name": "No Operation, do nothing7"
+    },
+    {
+      "parameters": {
+        "content": "## Leads",
+        "height": 576,
+        "width": 736
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        192,
+        2224
+      ],
+      "typeVersion": 1,
+      "id": "fe107bdd-b7ef-42b3-af3b-9a70aedb259c",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1824,
+        1872
+      ],
+      "id": "47eec72a-ccbd-4bdf-8586-4ad78cc0cd6e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "PURCHASE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "51a155db-ca66-45d3-980e-351932404cd6"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b6e841a6-df40-4452-8d93-0ec81c0b9510",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "COMPLAINT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f03d1977-e4b4-4e51-a517-700d9d15fece",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "DECLINE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6d3769e0-3547-4f99-af9f-48646adac941",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "MISMATCH_LEAD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5d3c5bd8-74f0-4abc-8ef6-660a30f9a6ae",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "PRICING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        1264
+      ],
+      "id": "a24b896b-9d66-427d-8e80-d43745de8256",
+      "name": "Switch3"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateLeadsStatus",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"lead_stage\": \"Lost\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        256,
+        1632
+      ],
+      "id": "7efd0f32-9617-4b74-b6c7-e78468e6bbb4",
+      "name": "HTTP Request5"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateLeadsStatus",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"lead_stage\": \"Unqualified\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        96,
+        1760
+      ],
+      "id": "207abd28-8920-4d24-99ee-6da399f51fe2",
+      "name": "HTTP Request7"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updateLeadsStatus",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\",\n  \"lead_stage\": \"Office Visit\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        304,
+        2448
+      ],
+      "id": "230ac06d-c428-4aed-8401-94c46702a39e",
+      "name": "Office Visit Leads"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "539b1b5c-171e-400b-9932-2999a03973ac",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.is_echo }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -6000,
+        1328
+      ],
+      "id": "99dcc28d-e8e5-411c-b6f5-13d177249b77",
+      "name": "If8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c8777a24-317a-4050-a9ba-e3bdfb92dc9b",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+              "rightValue": "Sorry about that po",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "cd3c780c-99ac-418c-b5d8-23b1e2f69646",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+              "rightValue": "Thank you po",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "1ba0bc52-6166-45ef-bf77-da7776990396",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+              "rightValue": ".",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -5712,
+        1024
+      ],
+      "id": "55bab412-1dff-4d1d-a1d4-940dfd52293e",
+      "name": "If9"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+                    "rightValue": "Thank you po",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "bd7181ee-6918-449f-839f-5a3d40770e50"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "115f670c-ba73-4c3c-b5f7-a227cc8a4ed6",
+                    "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+                    "rightValue": "Sorry about that po",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "dc6838b8-c7c4-46d1-8712-3797afde099e",
+                    "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+                    "rightValue": ".",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -5296,
+        528
+      ],
+      "id": "77fed0f4-1b72-40bb-9c7c-77136a941526",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -4672,
+        608
+      ],
+      "id": "44a711fc-1b3a-4877-94af-a56c025cfe2c",
+      "name": "No Operation, do nothing8"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -4672,
+        432
+      ],
+      "id": "fc8f0933-b3c2-4e8a-8141-adb610a576f3",
+      "name": "No Operation, do nothing9"
+    },
+    {
+      "parameters": {
+        "content": "## Human Response Checker",
+        "height": 528,
+        "width": 976
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -5360,
+        320
+      ],
+      "typeVersion": 1,
+      "id": "2413dc28-b95f-40cb-bcd0-4a32178861c7",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updatestatuslogs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}\",\n  \"status\": \"COMPLAINT\",\n  \"date_created\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -5072,
+        608
+      ],
+      "id": "9837f6a5-2480-4d43-918a-d964e25134bc",
+      "name": "Update Status6"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/conversation/updatestatuslogs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}\",\n  \"status\": \"OPEN\",\n  \"date_created\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -5072,
+        432
+      ],
+      "id": "d198bcca-d028-41db-9a59-e2af27f9e0b1",
+      "name": "Update Status7"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/automationdashboard/updateConversation",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}\",\n  \"conversation_status\": \"OPEN\",\n  \"conversation_updated_to\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4864,
+        432
+      ],
+      "id": "3e68cf2e-d4d3-48ca-8bab-4db08e708da4",
+      "name": "Update Status8"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Code in JavaScript1').item.json.URL }}/automationdashboard",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_psid\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}\",\n  \"conversation_status\": \"COMPLAINT\",\n  \"conversation_updated_from\": \"{{\n  new Date().toLocaleString('en-CA', {\n    timeZone: 'Asia/Manila',\n    hour12: false\n  }).replace(',', '')\n}}\",\n  \"conversation_updated_to\": null\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4864,
+        608
+      ],
+      "id": "81d5ecdb-eeff-40dd-9e1e-5ff64fe40681",
+      "name": "Add Complaint1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.classifierMemory }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1360,
+        1968
+      ],
+      "id": "4f4b9824-5da9-4049-97df-f26f190f4df8",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const APIURL =\"https://wheat-capybara-997939.hostingersite.com/api\";\n\nreturn [{ json: { URL: APIURL } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6352,
+        1328
+      ],
+      "id": "86b346ab-a4e7-41e1-92c4-09621b1aa35d",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const classifierMemory =$('Webhook').first().json.body.entry[0].messaging[0].sender.id+ '-review';\n\nreturn [{\n  json: {\n    classifierMemory,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        2144
+      ],
+      "id": "cbe3336f-d5ca-4a16-8b6b-ac9d902c4310",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.classifierMemory }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1120,
+        2624
+      ],
+      "id": "c4fc2840-6167-48b3-92f2-d75f940be570",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant please determine if the customer is asking for a full pricing details or lawn type pricing or estate or mausoleums\n\nrespond only\n\nFULL,\nLAWN, or ESTATE"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1328,
+        1056
+      ],
+      "id": "3702c85a-5ce1-4b24-9961-f29bdd77b6d8",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        1392
+      ],
+      "id": "00b929ac-5607-41db-a574-8eb626f9530a",
+      "name": "DeepSeek Chat Model3",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "OY7M7u8riRfDrZ0D",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "FULL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "fac69cfb-5813-4ec5-8566-677d06d8822d"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f6b9ea5c-88b7-4379-8cf1-e7060ed6d4c0",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "LAWN",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8e13df23-dfff-4141-a89e-7ff09f38b4b2",
+                    "leftValue": "={{ $json.output }}",
+                    "rightValue": "ESTATE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1024,
+        656
+      ],
+      "id": "f4d864d4-8304-48a8-96de-000a96d0d610",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://scontent.fcgy2-1.fna.fbcdn.net/v/t39.30808-6/616543682_122119282485125775_6449750626100382282_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=127cfc&_nc_ohc=ShMGkYEnULUQ7kNvwGZe4Ya&_nc_oc=AdkQ9uA06qiJenD-2bcY09LzVItzHtso3kGJHNYLHymtnGAh2bN7Es1Nj38yotKNVAA&_nc_zt=23&_nc_ht=scontent.fcgy2-1.fna&_nc_gid=e3DRwFERxQU0ujwCZmFO9A&oh=00_Afq6LmOxf_vMYcO_HvgClOPrCONyVTlvbarhIPDxTG_UPw&oe=697757D6\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        640
+      ],
+      "id": "43029b03-677c-4037-accd-c5474bb015aa",
+      "name": "RESPONSE3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://scontent.fcgy2-1.fna.fbcdn.net/v/t39.30808-6/615343234_122119282449125775_5281065172390924241_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=127cfc&_nc_ohc=Olx9-F9VyPQQ7kNvwGGEL3v&_nc_oc=AdkcoZNKDwbCu-zOvi64wiaGRcykWMMxDTPg6tqtkOHNgrIp8QkFZl8NPsiI4vv2-_0&_nc_zt=23&_nc_ht=scontent.fcgy2-1.fna&_nc_gid=aBgaNX1MOjSyQNUwx6XhrQ&oh=00_AfopctrfrCL-RoKHW6Jzqh1wUbFkNbrttypoTe7-T4uD1g&oe=69774B9A\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        912
+      ],
+      "id": "46694365-749e-4bac-9688-ecb31425f451",
+      "name": "RESPONSE4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"For Lawn types po we have this pricing po ito po.\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        512
+      ],
+      "id": "7985163e-818a-4910-8ffc-96874ecda908",
+      "name": "RESPONSE5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"For detailed pricing po ito po.\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0ae861b0-f0ec-4117-802c-06119b8d2dd5",
+      "name": "RESPONSE6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"For Mausoleum po or Estate po we have this pricing po ito po.\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        784
+      ],
+      "id": "fffd53b5-c97a-4577-b4cf-3a18a8e7745d",
+      "name": "RESPONSE7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://drive.google.com/uc?export=view&id=1Sh227P_1OO8iuZydPHO365ErAOMBWOxk\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        144
+      ],
+      "id": "0647afb7-c2c2-4817-a988-7f28f18c2672",
+      "name": "RESPONSE8"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://scontent.fcgy2-1.fna.fbcdn.net/v/t39.30808-6/615343234_122119282449125775_5281065172390924241_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=127cfc&_nc_ohc=Olx9-F9VyPQQ7kNvwGGEL3v&_nc_oc=AdkcoZNKDwbCu-zOvi64wiaGRcykWMMxDTPg6tqtkOHNgrIp8QkFZl8NPsiI4vv2-_0&_nc_zt=23&_nc_ht=scontent.fcgy2-1.fna&_nc_gid=aBgaNX1MOjSyQNUwx6XhrQ&oh=00_AfopctrfrCL-RoKHW6Jzqh1wUbFkNbrttypoTe7-T4uD1g&oe=69774B9A\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        288
+      ],
+      "id": "bd7ae18d-c7e4-4ad6-9f03-9e42b63bf492",
+      "name": "RESPONSE9"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "Analyze what is this image and explain what is this image determine if this cause issue or not",
+        "inputType": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.attachments[0].payload.url }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -4608,
+        944
+      ],
+      "id": "5e93c10f-e2bc-457f-934e-c894bd60cb32",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": "km11eoQzYIuV2026",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "358f9124-9645-4c17-a194-a279bf193071",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.attachments[0].type }}",
+              "rightValue": "image",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3360,
+        1152
+      ],
+      "id": "1f11b686-d7aa-4014-8dfe-8c03eea8a830",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.attachments[0].payload.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4848,
+        1024
+      ],
+      "id": "3ea1688f-dae9-4e06-ab8b-934711247c4a",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/918531391347250/messages?access_token=EAAJxC9hLSRUBQXZBiI1PD19lZCaaRFAjvjAMsIUwRHc9f2UZAFdjPFG5vZBBtqBgZBsRgQZBbsTF4EWTdRB0XMsn0HD2IluQgI1cxDMZAHHj2fwbYdiex9gIwWe4oBBWmJZBqowa62pGbduDqGeDlYiznoAXfhUQnMeTYbWgmscWtx2MD4haJ3QaILCmEZBJWAsWi7EllgVRHpEVy4fKGqAGpX0B6QQZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.sender }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $json.sanitizedOutput }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2432,
+        576
+      ],
+      "id": "4a946eb8-a5f5-4abc-b853-a148527d67f3",
+      "name": "RESPONSE2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3056,
+        704
+      ],
+      "id": "3a2d4339-e675-46fb-9b01-98f7f419b2de",
+      "name": "Wait1",
+      "webhookId": "0abecd24-c39a-46cd-9a56-46bf2f8a9906"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw AI or dynamic text\nconst rawText = $json.output || $input.first().json.message.content || \"\";\nconst sender = $('Webhook').first().json.body.entry[0].messaging[0].sender.id || \"\";\nconst reciever = $('Webhook').first().json.body.entry[0].messaging[0].recipient.id || \"\";\n\n// Sanitize text for JSON / messaging APIs\nconst sanitizedText = rawText\n  .replace(/\\\\/g, \"\\\\\\\\\")        // Escape backslashes\n  .replace(/\"/g, '\\\\\"')         // Escape double quotes\n  .replace(/\\r?\\n|\\r/g, \"\\\\n\")  // Convert line breaks to \\n\n  .replace(/\\t/g, \" \")          // Replace tabs with space\n  .trim();\n\n// Return clean output\nreturn [\n  {\n    json: {\n      sanitizedOutput: sanitizedText,\n      sender : sender,\n      receiver : reciever\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3392,
+        704
+      ],
+      "id": "fe5b7b35-5e6a-4dad-b5c8-b709648b7e79",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -4016,
+        944
+      ],
+      "id": "3964c53a-f033-46ba-8246-d23fc7988b78",
+      "name": "DeepSeek Chat Model4",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "OY7M7u8riRfDrZ0D",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "You are a Helpful chatbot",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "includeDocumentMetadata": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -3536,
+        944
+      ],
+      "id": "bb05ed63-fa92-412c-821e-b933e6617dac",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bo6mUO71QxAv1mk8",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -3760,
+        1008
+      ],
+      "id": "0a27f979-c9d0-4b1a-bbea-2b146b00a426",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "km11eoQzYIuV2026",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b3b4a922-4542-4d30-8c80-764d60b289fc",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.is_echo }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2752,
+        704
+      ],
+      "id": "c52a265c-c3a3-4053-acf1-64b693f4cdbf",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAJxC9hLSRUBQfU4ZAViHWYFvmR8cdCQfZCyVIvrRLrEGY7O4XlWc89vXcn1pshDrhzLX2fdNoazVtdztRnnF53UvTq5Lofaetx4vzALBZCPaIoqK5crmQlG7zY3wn8tIb6aVYZCbbWZBoHAoA38v9XZA46RZCLFZAtZBcXTXM649zKheP9jVMvFQUMxCmwJpcoZBC29FsYq7v62pJThN6hkwEgA867QZDZD",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.sender }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $json.sanitizedOutput }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2432,
+        784
+      ],
+      "id": "14b45017-445c-4e64-84da-d5ee0c9b056f",
+      "name": "RESPONSE10"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Code in JavaScript3').item.json.classifierMemory }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -3904,
+        944
+      ],
+      "id": "eb63e4b0-798c-43b7-88d5-0ec467668644",
+      "name": "Simple Memory3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "41d6dc7c-ab28-436a-ab39-e0e097dce21b",
+              "name": "interpreted_text",
+              "value": "={{ $json['0'].content[0].text.replace(/\\r?\\n/g, \"\\\\n\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4336,
+        816
+      ],
+      "id": "e7feeefe-8b18-4f0a-87b4-63dfb614d085",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const classifierMemory =$('Webhook').first().json.body.entry[0].messaging[0].sender.id+ '-review';\n\nreturn [{\n  json: {\n    classifierMemory,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4112,
+        640
+      ],
+      "id": "1fed34f9-82ef-413c-9fff-b7cd8ce35c26",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "get",
+        "documentURL": "https://docs.google.com/document/d/1bRB3Tkxd1GrCcKv7u3apV4eTysMg2h-rxvX-ahxeEio/edit?usp=sharing"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -3936,
+        528
+      ],
+      "id": "bf5028ba-5e1b-44ce-89f8-380814a4ede7",
+      "name": "Agent Rules1",
+      "credentials": {
+        "googleApi": {
+          "id": "r0XCETL9KDFrxBYg",
+          "name": "Google Cloud"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        1984
+      ],
+      "id": "08354f82-914c-4827-a493-f29de5f3643e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "km11eoQzYIuV2026",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -4176,
+        1040
+      ],
+      "id": "82caabd0-19b4-4285-951b-9c4945303d92",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "km11eoQzYIuV2026",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=== CLM CONTEXT ===\nLEAD_STAGE: {{ $('HTTP Request').item.json.lead_stage }}\nRELATIONSHIP_STATUS: {{ $('HTTP Request').item.json.relationship_stage }}\n\n=== ALLOWED ACTIONS BY LEAD_STAGE ===\n- Intake: General info, price RANGE only (e.g. \"around ₱150K–₱500K\"), location/directions, optional office visit invite. DO NOT give detailed per-lot pricing yet.\n- Qualified: Detailed pricing OK, payment options OK, schedule office visit, eligibility info (no execution).\n- Office Visit: Reschedule visit, directions/parking, requirements checklist only.\n- Closing: NO new selling. Only payment assistance, documentation help, final clarifications.\n- Dormant: Reactive only — answer their question, do NOT push sales.\n- Lost / Unqualified: Treat as fresh Intake; do NOT reference past status.\n\n=== TONE BY RELATIONSHIP_STATUS ===\n- Neutral: Standard professional tone. Full automation OK.\n- Advocate: Warm/appreciative tone. NO sales pressure. Thank them when relevant.\n- At-Risk: GENTLE tone. Cooling period — DO NOT pitch upsells or mention price of new products.\n- Complaint: Selling PAUSED. Do NOT pitch ANY product or pricing. Stay empathetic and address only their concern.\n- Bad Faith: Reply ONLY with: \"A human agent will get back to you shortly.\" Nothing else.\n\n=== HARD RULES ===\n1. If RELATIONSHIP_STATUS is At-Risk, Complaint, or Bad Faith → NEVER mention price, payment plans, or new products.\n2. Office visit is OPTIONAL — never force it. Closing does not require a visit.\n3. NEVER promise something a human must approve (refunds, special discounts, schedule overrides) — say \"let me have someone check this for you.\"\n4. If LEAD_STAGE is Intake, keep pricing answers at the RANGE level. Send the customer to Qualified by asking what type/area they're interested in before giving detailed numbers.\n\n=== KNOWLEDGE BASE INSTRUCTION ===\n{{ $json.instruction }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1328,
+        1760
+      ],
+      "id": "85ede68e-822f-498e-819b-f3fffa8e4c79",
+      "name": "AI Agent3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields1').item.json.interpreted_text }}",
+        "options": {
+          "systemMessage": "=== CLM CONTEXT (Image response) ===\nLEAD_STAGE: {{ $('HTTP Request').item.json.lead_stage }}\nRELATIONSHIP_STATUS: {{ $('HTTP Request').item.json.relationship_stage }}\n\nThe customer sent an IMAGE. The user prompt contains a description of what was in that image.\n\n=== ALLOWED ACTIONS BY LEAD_STAGE ===\n- Intake: General info, price RANGE only. DO NOT give detailed pricing yet.\n- Qualified: Detailed pricing OK, payment options OK, schedule office visit.\n- Office Visit: Reschedule, directions/parking, requirements checklist only.\n- Closing: NO new selling. Only payment assistance, documentation help.\n- Dormant: Reactive only.\n- Lost / Unqualified: Treat as fresh Intake.\n\n=== TONE BY RELATIONSHIP_STATUS ===\n- Neutral: Standard professional tone.\n- Advocate: Warm/appreciative tone. No sales pressure.\n- At-Risk: GENTLE tone. NO upsells or pricing of new products.\n- Complaint: Selling PAUSED. Address concern only.\n- Bad Faith: Reply ONLY \"A human agent will get back to you shortly.\"\n\n=== HARD RULES ===\n1. At-Risk / Complaint / Bad Faith → NEVER mention price or new products.\n2. Office visit is OPTIONAL.\n3. NEVER promise approvals — say \"let me have someone check this for you.\"\n\n=== KNOWLEDGE BASE INSTRUCTION ===\n{{ $json.content }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -3776,
+        704
+      ],
+      "id": "977280bd-eaf6-4855-a3b5-fa2139b4dc0f",
+      "name": "AI Agent4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bf123456-1111-2222-3333-444455556666",
+              "leftValue": "={{ $('HTTP Request').item.json.relationship_stage }}",
+              "rightValue": "Bad Faith",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1760,
+        1760
+      ],
+      "id": "bfcheck0-aaaa-bbbb-cccc-ddddeeeeffff",
+      "name": "If Bad Faith"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2048,
+        2000
+      ],
+      "id": "bfskip00-1234-5678-9abc-def012345678",
+      "name": "Bad Faith Skip"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Switch3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "New Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "If Bad Faith",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Bad Faith": {
+      "main": [
+        [
+          {
+            "node": "Bad Faith Skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript6": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript7": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Customer": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Conversation": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Rules": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Conversation1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "RESPONSE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESPONSE1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualified Leads": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "Qualified Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Office Visit Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch3": {
+      "main": [
+        [
+          {
+            "node": "Update Status1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "Agent Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request7": {
+      "main": [
+        [
+          {
+            "node": "Agent Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Office Visit Leads": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If8": {
+      "main": [
+        [
+          {
+            "node": "If9",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If9": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "Update Status7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status6": {
+      "main": [
+        [
+          {
+            "node": "Add Complaint1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status7": {
+      "main": [
+        [
+          {
+            "node": "Update Status8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status8": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Complaint1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "RESPONSE6",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RESPONSE8",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RESPONSE9",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESPONSE3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RESPONSE5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESPONSE4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RESPONSE7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "RESPONSE2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESPONSE10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Agent Rules1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Rules1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent4": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "82f3f1e6-9db0-4bd6-98a2-c087b7066c9b",
+  "meta": {
+    "instanceId": "e4622b39ff4f901ec7a9f943811eb437ded49f9275b494404a91d0c677e745c0"
+  },
+  "id": "wwOuHjuvoSQYu05i",
+  "tags": []
+}

@@ -27,7 +27,7 @@ import { generatePost, generateContentPlan, generateWeeklyBriefs, generateBatchD
 import { addDraft, updateDraft, getDraft, listDrafts, PostDraft } from './draftStore'
 import { scoreAsset, scoreAssetFromBuffer } from './assetScorer'
 import { addAsset, updateAsset, getAsset, listAssets, StoredAsset, AssetType } from './assetStore'
-import { recordPost, getLastPosted, getRecentConcepts, getRecentHeroIds, removeEntry, resetAll, resetByTemplateKey, patchPostIds, deduplicateEntries, listAll, markBoosted, markAllPendingBoosted } from './coverageStore'
+import { recordPost, getLastPosted, getRecentConcepts, getRecentHeroIds, removeEntry, resetAll, resetByTemplateKey, patchPostIds, deduplicateEntries, listAll, markBoosted, markAllPendingBoosted, recordBoostFailure, clearGiveUpState, updatePostedAt } from './coverageStore'
 import { fetchCategoryInsights, formatInsightsTable, formatInsightsForClaude, fetchBoostCampaignInsights, formatBoostInsightsTable, analyzeBoostScaler, formatBoostScaler } from './fbInsights'
 import { runSurfacePull, runDeepPull, getQualifiedSignals, formatSignalsForDiscord, loadToneMap } from './signalStore'
 import { generateSpeech, mixVideoAudio, stitchVideoClips } from './tts'
@@ -594,17 +594,47 @@ export async function startBot(): Promise<void> {
     if (!pageId) return
 
     const now = Date.now()
-    const toBoost = listAll().filter(e =>
+    let toBoost = listAll().filter(e =>
       (e.fbPostId || e.fbPhotoId) &&
       !e.boosted &&
       new Date(e.postedAt).getTime() < now
     )
     if (toBoost.length === 0) return
 
+    // ── Pre-boost ID rescue ────────────────────────────────────────────────
+    // Facebook doesn't give us the real post_id when we *schedule* a post —
+    // only after it publishes. So entries scheduled hours/days ago typically
+    // have fbPhotoId but no fbPostId. Before attempting any boost, we fetch
+    // the page's live posts and patch in the correct post_id. Entries whose
+    // post hasn't actually gone live yet won't match anything and will simply
+    // be skipped until the next tick.
+    const needLookup = toBoost.filter(e => !e.fbPostId && e.fbPhotoId)
+    if (needLookup.length > 0) {
+      try {
+        const posts = await fetchPagePosts(50)
+        const photoToPost = new Map<string, string>()
+        for (const p of posts) if (p.photoId) photoToPost.set(p.photoId, p.id)
+        const patched = patchPostIds(photoToPost)
+        if (patched > 0) {
+          console.log(`[AutoBoost] Patched ${patched} entr${patched === 1 ? 'y' : 'ies'} with real post IDs from Facebook`)
+          toBoost = listAll().filter(e =>
+            (e.fbPostId || e.fbPhotoId) &&
+            !e.boosted &&
+            new Date(e.postedAt).getTime() < now
+          )
+        }
+      } catch (err: any) {
+        console.warn('[AutoBoost] Page post lookup failed:', err.message)
+      }
+    }
+
+    // Skip entries that still don't have a real post_id — their post hasn't
+    // actually published on Facebook yet. We'll try again next tick.
+    toBoost = toBoost.filter(e => e.fbPostId)
+    if (toBoost.length === 0) return
+
     for (const entry of toBoost) {
-      // Prefer the real post_id (correct format: pageId_postId) — fall back to
-      // building one from the photo ID, which works for most photo posts but not all.
-      const objectStoryId = entry.fbPostId ?? `${pageId}_${entry.fbPhotoId}`
+      const objectStoryId = entry.fbPostId!
       try {
         const adsUrl = await boostPost(objectStoryId, s.boostBudgetPHP, s.boostAgeMin, s.boostAgeMax, s.boostCountry)
         markBoosted(entry.templateKey, entry.postedAt)
@@ -620,16 +650,97 @@ export async function startBot(): Promise<void> {
           }
         }
       } catch (err: any) {
-        console.error(`[AutoBoost] Failed for ${entry.label}:`, err.message)
+        const { attempts, gaveUp } = recordBoostFailure(entry.templateKey, entry.postedAt, err.message, 3)
+        console.error(`[AutoBoost] Failed for ${entry.label} (attempt ${attempts}/3):`, err.message)
         if (s.coverageCheckChannelId) {
           const ch = await g.__discordClient!.channels.fetch(s.coverageCheckChannelId).catch(() => null)
           if (ch?.isTextBased()) {
-            await (ch as SendableChannel).send(`⚠️ **Auto-boost failed** for **${entry.label}**: ${err.message}`)
+            if (gaveUp) {
+              await (ch as SendableChannel).send(
+                `🛑 **Auto-boost giving up** on **${entry.label}** after 3 failed attempts\n` +
+                `> Reason: ${err.message}\n` +
+                `> No more retries — clean up shells with \`cleanup shells\``
+              )
+            } else if (attempts === 1) {
+              // Only notify on the first failure to avoid spam; silent on retries 2 & 3
+              await (ch as SendableChannel).send(`⚠️ **Auto-boost failed** for **${entry.label}**: ${err.message} _(will retry 2 more times)_`)
+            }
           }
         }
       }
     }
   }, 60 * 1000)
+
+  // Auto-rules check — runs hourly. Handles:
+  //   1. auto-pause: pause boosts where cost-per-message > threshold (after min spend)
+  //   2. auto-boost-again: duplicate winners (score ≥ threshold) at 2x budget
+  setInterval(async () => {
+    const s = loadSettings()
+    if (!s.autoPauseEnabled && !s.autoBoostAgainEnabled) return
+    try {
+      const { analyzeBoostScaler } = await import('./fbInsights')
+      const { pauseBoostCampaign } = await import('./facebook')
+      const scaler = await analyzeBoostScaler('30d')
+
+      const all = [...scaler.winners, ...scaler.mids, ...scaler.losers, ...scaler.ramping]
+
+      // ── Auto-pause ─────────────────────────────────────────────
+      if (s.autoPauseEnabled) {
+        for (const p of all) {
+          if (p.spend < (s.autoPauseMinSpend ?? 500)) continue
+          if (p.costPerMessage <= 0) continue
+          if (p.costPerMessage < (s.autoPauseCpmThreshold ?? 400)) continue
+          try {
+            await pauseBoostCampaign(p.campaignId)
+            console.log(`[AutoRule] Paused ${p.label}: ₱${p.costPerMessage.toFixed(0)}/msg > threshold`)
+            if (s.coverageCheckChannelId) {
+              const ch = await g.__discordClient!.channels.fetch(s.coverageCheckChannelId).catch(() => null)
+              if (ch?.isTextBased()) {
+                await (ch as SendableChannel).send(
+                  `⏸️ **Auto-paused:** ${p.label}\n> ₱${p.costPerMessage.toFixed(0)}/msg exceeded ₱${s.autoPauseCpmThreshold} threshold after ₱${p.spend.toFixed(0)} spent`
+                )
+              }
+            }
+          } catch (err: any) {
+            console.warn(`[AutoRule] Pause failed for ${p.label}:`, err.message)
+          }
+        }
+      }
+
+      // ── Auto-boost-again ───────────────────────────────────────
+      if (s.autoBoostAgainEnabled) {
+        const cooldownMs = (s.autoBoostAgainCooldownDays ?? 7) * 24 * 3600 * 1000
+        const recentDuplicates = (g as any).__autoBoostAgainHistory ?? new Map<string, number>()
+        ;(g as any).__autoBoostAgainHistory = recentDuplicates
+
+        const winnersWithScore = scaler.winners.filter(p => p.score >= (s.autoBoostAgainMinScore ?? 6))
+        for (const p of winnersWithScore) {
+          const last = recentDuplicates.get(p.postPhotoId) ?? 0
+          if (Date.now() - last < cooldownMs) continue
+          if (!p.postPhotoId) continue
+          try {
+            const pageId = process.env.FACEBOOK_PAGE_ID
+            if (!pageId) continue
+            const adsUrl = await boostPost(`${pageId}_${p.postPhotoId}`, (s.boostBudgetPHP ?? 250) * 2, s.boostAgeMin ?? 25, s.boostAgeMax ?? 60, s.boostCountry ?? 'PH')
+            recentDuplicates.set(p.postPhotoId, Date.now())
+            console.log(`[AutoRule] Boosted-again ${p.label} at 2x budget`)
+            if (s.coverageCheckChannelId) {
+              const ch = await g.__discordClient!.channels.fetch(s.coverageCheckChannelId).catch(() => null)
+              if (ch?.isTextBased()) {
+                await (ch as SendableChannel).send(
+                  `🚀 **Auto-boosted again (winner):** ${p.label}\n> Score ${p.score.toFixed(1)}/9, ₱${p.costPerMessage.toFixed(0)}/msg — scaling at 2x budget\n[Ads Manager](${adsUrl})`
+                )
+              }
+            }
+          } catch (err: any) {
+            console.warn(`[AutoRule] Boost-again failed for ${p.label}:`, err.message)
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[AutoRule] Cycle failed:', err.message)
+    }
+  }, 60 * 60 * 1000) // hourly
 
   // Signal surface pull — runs every 4 hours
   setInterval(async () => {
@@ -998,6 +1109,15 @@ async function handleMessage(message: Message) {
       skipped === 0
         ? 'Nothing to skip — no pending boosts found.'
         : `✅ Marked **${skipped} entr${skipped === 1 ? 'y' : 'ies'}** as boosted. Auto-boost will no longer retry them.`
+    )
+    return
+  }
+  if (content === 'retry boosts') {
+    const cleared = clearGiveUpState()
+    await message.reply(
+      cleared === 0
+        ? 'No given-up entries to retry — everything is either boosted or still pending.'
+        : `✅ Reset **${cleared} given-up entr${cleared === 1 ? 'y' : 'ies'}**. Auto-boost will retry within 60s — and now uses the live-post lookup, so it should succeed this time.`
     )
     return
   }
@@ -4913,6 +5033,7 @@ async function handleShiftPosts(message: Message) {
     const preview = postMsgPreview(post.message, 50)
     try {
       await updateScheduledPostTime(post.id, newTime)
+      updatePostedAt(oldTime, newTime)
       shifted.push(`📅 ${formatPHT(oldTime)} → **${formatPHT(newTime)}**\n   ${preview}`)
     } catch (err: any) {
       failed.push(`${preview}: ${err.message}`)
@@ -4989,8 +5110,9 @@ async function handleReschedulePost(message: Message) {
   await ch.send(`Rescheduling post ${num} from **${formatPHT(post.scheduledTime)}** → **${formatPHT(newTime)}**...`)
   try {
     await updateScheduledPostTime(post.id, newTime)
+    const synced = updatePostedAt(post.scheduledTime, newTime)
     g.__scheduledPostsCache!.clear()
-    await ch.send(`✅ Post ${num} moved to **${formatPHT(newTime)}**.`)
+    await ch.send(`✅ Post ${num} moved to **${formatPHT(newTime)}**.${synced ? '' : '\n_(No matching coverage entry — auto-boost may not catch this post; run `coverage fix` after publish.)_'}`)
   } catch (err: any) {
     await ch.send(`❌ Reschedule failed: ${err.message}`)
   }

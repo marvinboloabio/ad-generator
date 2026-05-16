@@ -59,6 +59,18 @@ export interface BrandSettings {
   boostCountry: string
   autoBoostEnabled: boolean
 
+  // Auto-pause rule: pause any boost whose cost-per-message exceeds threshold
+  // after it has spent at least minSpendBeforeAction PHP.
+  autoPauseEnabled: boolean
+  autoPauseCpmThreshold: number     // ₱ per message above which a boost gets paused
+  autoPauseMinSpend: number         // ₱ minimum spent before this rule activates
+
+  // Auto-boost-again rule: when a campaign hits WINNER status (score ≥ 6) and
+  // has spent at least minSpendForWinner, automatically duplicate it.
+  autoBoostAgainEnabled: boolean
+  autoBoostAgainMinScore: number    // minimum scaler score to trigger (default 6)
+  autoBoostAgainCooldownDays: number // don't re-duplicate the same post more than once per N days
+
   // Scheduled coverage check
   coverageCheckIntervalDays: number  // 0 = disabled
   coverageCheckHourPHT: number       // 0-23 PHT hour to fire (default 9)
@@ -115,6 +127,14 @@ export const DEFAULT_SETTINGS: BrandSettings = {
   boostAgeMax:       60,
   boostCountry:      'PH',
   autoBoostEnabled:  false,
+
+  autoPauseEnabled:        false,
+  autoPauseCpmThreshold:   400,
+  autoPauseMinSpend:       500,
+
+  autoBoostAgainEnabled:   false,
+  autoBoostAgainMinScore:  6,
+  autoBoostAgainCooldownDays: 7,
 
   coverageCheckIntervalDays: 0,
   coverageCheckHourPHT:      9,

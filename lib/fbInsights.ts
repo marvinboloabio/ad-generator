@@ -51,6 +51,7 @@ export interface BoostCampaignInsights {
   campaignStatus: string
   adStatus: string      // effective_status of the actual ad inside — may differ from campaign
   dailyBudgetPHP: number
+  lifetimeBudgetPHP: number
   spend: number
   reach: number
   impressions: number
@@ -63,9 +64,24 @@ export interface BoostCampaignInsights {
   costPerMessage: number  // spend / messagingConversations (0 if no messages)
   createdTime: string
   postPhotoId: string
+  // Joined from coverage store — the ad category label and concept summary
+  // (so the OVERVIEW tab can show "Light Emotional" instead of just a post ID).
+  templateKey?: string
+  label?: string
+  concept?: string
 }
 
-export async function fetchBoostCampaignInsights(): Promise<BoostCampaignInsights[]> {
+export type DateRange = '1d' | '7d' | '30d' | 'all'
+
+function dateRangeToParam(range: DateRange | string): { useTimeRange: boolean; since?: string; until?: string } {
+  if (range === 'all') return { useTimeRange: false }
+  const days = range === '1d' ? 1 : range === '30d' ? 30 : 7
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const until = new Date().toISOString().slice(0, 10)
+  return { useTimeRange: true, since, until }
+}
+
+export async function fetchBoostCampaignInsights(range: DateRange | string = '7d'): Promise<BoostCampaignInsights[]> {
   const adAccountId = process.env.FB_AD_ACCOUNT_ID
   const accessToken = process.env.FACEBOOK_ACCESS_TOKEN
   if (!adAccountId || !accessToken) throw new Error('FB_AD_ACCOUNT_ID or FACEBOOK_ACCESS_TOKEN not set')
@@ -74,7 +90,7 @@ export async function fetchBoostCampaignInsights(): Promise<BoostCampaignInsight
 
   // 1. All campaigns in the ad account
   const campaignRes = await graphGet(
-    `/v21.0/${adAccountId}/campaigns?fields=id,name,effective_status,created_time&limit=50&access_token=${tok}`
+    `/v21.0/${adAccountId}/campaigns?fields=id,name,effective_status,created_time,daily_budget,lifetime_budget&limit=50&access_token=${tok}`
   )
   if (campaignRes.error) throw new Error(`FB Campaigns: ${campaignRes.error.message}`)
 
@@ -104,29 +120,41 @@ export async function fetchBoostCampaignInsights(): Promise<BoostCampaignInsight
     }
   }
 
-  // 3. Adsets for budget — one account-level call
+  // 3. Adsets for budget — one account-level call. Boosted posts usually use
+  // lifetime_budget (you pick total spend × duration), not daily_budget. Fetch
+  // both and prefer adset-level over campaign-level (CBO) values.
   const adsetFilter = encodeURIComponent(JSON.stringify([{ field: 'campaign.id', operator: 'IN', value: campaignIds }]))
   const adsetsRes = await graphGet(
-    `/v21.0/${adAccountId}/adsets?fields=campaign_id,daily_budget&filtering=${adsetFilter}&limit=100&access_token=${tok}`
+    `/v21.0/${adAccountId}/adsets?fields=campaign_id,daily_budget,lifetime_budget&filtering=${adsetFilter}&limit=100&access_token=${tok}`
   )
-  const budgetByCampaign = new Map<string, number>()
+  const dailyByCampaign = new Map<string, number>()
+  const lifetimeByCampaign = new Map<string, number>()
   if (!adsetsRes.error) {
     for (const adset of (adsetsRes.data ?? []) as any[]) {
-      if (adset.daily_budget) budgetByCampaign.set(adset.campaign_id, parseInt(adset.daily_budget, 10) / 100)
+      if (adset.daily_budget) dailyByCampaign.set(adset.campaign_id, parseInt(adset.daily_budget, 10) / 100)
+      if (adset.lifetime_budget) lifetimeByCampaign.set(adset.campaign_id, parseInt(adset.lifetime_budget, 10) / 100)
+    }
+  }
+  // Fall back to campaign-level CBO budgets when adsets don't carry them
+  for (const c of campaigns) {
+    if (c.daily_budget && !dailyByCampaign.has(c.id)) {
+      dailyByCampaign.set(c.id, parseInt(c.daily_budget, 10) / 100)
+    }
+    if (c.lifetime_budget && !lifetimeByCampaign.has(c.id)) {
+      lifetimeByCampaign.set(c.id, parseInt(c.lifetime_budget, 10) / 100)
     }
   }
 
   // 4. Insights — one account-level call with campaign breakdown.
   // Request `actions` + `cost_per_action_type` to capture Messenger conversation
   // metrics, which are the real KPI for OUTCOME_ENGAGEMENT ads with MESSAGE_PAGE CTA.
-  // Use a rolling 7-day window (current day - 7d to today) for recent performance
-  // — old campaigns from 6 months ago shouldn't skew today's signals.
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  const today = new Date().toISOString().slice(0, 10)
-  const timeRange = encodeURIComponent(JSON.stringify({ since: sevenDaysAgo, until: today }))
+  const rangeParam = dateRangeToParam(range)
   const insightFilter = encodeURIComponent(JSON.stringify([{ field: 'campaign.id', operator: 'IN', value: campaignIds }]))
+  const timeOrPreset = rangeParam.useTimeRange
+    ? `time_range=${encodeURIComponent(JSON.stringify({ since: rangeParam.since, until: rangeParam.until }))}`
+    : `date_preset=maximum`
   const insightsRes = await graphGet(
-    `/v21.0/${adAccountId}/insights?fields=campaign_id,spend,reach,impressions,cpm,ctr,clicks,actions,cost_per_action_type&time_range=${timeRange}&level=campaign&filtering=${insightFilter}&limit=50&access_token=${tok}`
+    `/v21.0/${adAccountId}/insights?fields=campaign_id,spend,reach,impressions,cpm,ctr,clicks,actions,cost_per_action_type&${timeOrPreset}&level=campaign&filtering=${insightFilter}&limit=50&access_token=${tok}`
   )
   const insightsByCampaign = new Map<string, any>()
   if (!insightsRes.error) {
@@ -167,18 +195,34 @@ export async function fetchBoostCampaignInsights(): Promise<BoostCampaignInsight
     return { count, cpa }
   }
 
+  // Build photoId → coverage entry lookup so we can tag campaigns with their
+  // ad category for display. Match on either fbPhotoId or the post-id portion
+  // of fbPostId (covers entries patched after publish).
+  const coverageByPhoto = new Map<string, { templateKey: string; label: string; concept?: string }>()
+  for (const e of listAll()) {
+    const tag = { templateKey: e.templateKey, label: e.label, concept: e.concept }
+    if (e.fbPhotoId) coverageByPhoto.set(e.fbPhotoId, tag)
+    if (e.fbPostId) {
+      const suffix = e.fbPostId.includes('_') ? e.fbPostId.split('_')[1] : e.fbPostId
+      if (suffix && !coverageByPhoto.has(suffix)) coverageByPhoto.set(suffix, tag)
+    }
+  }
+
   const results: BoostCampaignInsights[] = campaigns.map((c: any) => {
     const cid: string = c.id
     const ad = adsByCampaign.get(cid)
     const ins = insightsByCampaign.get(cid)
     const { count: messagingConversations, cpa: costPerMessage } = extractMessages(ins)
+    const photoId = ad?.photoId ?? ''
+    const cov = photoId ? coverageByPhoto.get(photoId) : undefined
 
     return {
       campaignId: cid,
       campaignName: c.name,
       campaignStatus: c.effective_status ?? 'UNKNOWN',
       adStatus: ad?.status ?? 'NO_AD',
-      dailyBudgetPHP: budgetByCampaign.get(cid) ?? 0,
+      dailyBudgetPHP: dailyByCampaign.get(cid) ?? 0,
+      lifetimeBudgetPHP: lifetimeByCampaign.get(cid) ?? 0,
       spend:       parseFloat(ins?.spend ?? '0'),
       reach:       parseInt(ins?.reach ?? '0', 10),
       impressions: parseInt(ins?.impressions ?? '0', 10),
@@ -188,7 +232,10 @@ export async function fetchBoostCampaignInsights(): Promise<BoostCampaignInsight
       messagingConversations,
       costPerMessage,
       createdTime: c.created_time ?? '',
-      postPhotoId: ad?.photoId ?? '',
+      postPhotoId: photoId,
+      templateKey: cov?.templateKey,
+      label: cov?.label,
+      concept: cov?.concept,
     }
   })
 
@@ -211,7 +258,11 @@ export function formatBoostInsightsTable(items: BoostCampaignInsights[]): string
 
   const rows = items.map((item, i) => {
     const hasData = item.impressions > 0
-    const budgetStr = item.dailyBudgetPHP > 0 ? `₱${item.dailyBudgetPHP.toFixed(0)}/day` : '—'
+    const budgetStr = item.dailyBudgetPHP > 0
+      ? `₱${item.dailyBudgetPHP.toFixed(0)}/day`
+      : item.lifetimeBudgetPHP > 0
+        ? `₱${item.lifetimeBudgetPHP.toFixed(0)} total`
+        : '—'
     const spendStr = `₱${item.spend.toFixed(2)}`
     const postRef = item.postPhotoId ? ` · post \`${item.postPhotoId}\`` : ''
     const date = item.createdTime ? item.createdTime.slice(0, 10) : item.campaignName
@@ -502,7 +553,7 @@ export interface BoostPerformance {
   messagingConversations: number
   costPerMessage: number    // 0 if no messages yet
   score: number             // 0–9 composite, weighted on cost-per-message
-  tier: 'winner' | 'mid' | 'loser'
+  tier: 'winner' | 'mid' | 'loser' | 'ramping'
   templateKey?: string      // matched from coverage store
   label?: string            // ad category label
   concept?: string          // one-line concept summary
@@ -513,6 +564,7 @@ export interface BoostScaler {
   winners: BoostPerformance[]
   mids: BoostPerformance[]
   losers: BoostPerformance[]
+  ramping: BoostPerformance[]  // boosts with < ₱100 spent — too early to score
   totalSpend: number
   totalReach: number
   totalClicks: number
@@ -540,8 +592,8 @@ export interface BoostScaler {
  *
  * Tiers: ≥6 winner · 3–6 mid · <3 loser
  */
-export async function analyzeBoostScaler(): Promise<BoostScaler> {
-  const insights = await fetchBoostCampaignInsights()
+export async function analyzeBoostScaler(range: DateRange | string = '7d'): Promise<BoostScaler> {
+  const insights = await fetchBoostCampaignInsights(range)
   const coverage = listAll()
 
   // Build a photoId → coverage entry lookup
@@ -550,32 +602,43 @@ export async function analyzeBoostScaler(): Promise<BoostScaler> {
     if (e.fbPhotoId) coverageByPhoto.set(e.fbPhotoId, { templateKey: e.templateKey, label: e.label, concept: e.concept })
   }
 
-  // Only consider campaigns that (a) actually spent money, (b) have an ad attached,
-  // and (c) can be matched back to a coverage-store entry so we know the category.
-  // Uncategorized campaigns (e.g. boosts created outside the bot) are excluded.
+  // Include every campaign that (a) has an ad attached and (b) can be matched
+  // back to a coverage-store entry. We include ₱0-spend (just-boosted) ones so
+  // they show up in the RAMPING tier instead of disappearing.
   const measurable = insights.filter(c =>
-    c.spend > 0 &&
     c.adStatus !== 'NO_AD' &&
     coverageByPhoto.has(c.postPhotoId)
   )
 
   const performances: BoostPerformance[] = measurable.map(c => {
-    // Cost-per-message is the primary signal — but we need to guard against
-    // campaigns too young to have data (less than ₱100 spent gets a neutral score
-    // so it doesn't get labeled a "loser" prematurely).
+    // Recalibrated for PH memorial services — customer lifetime value is high,
+    // so ₱150/msg is good, not bad. Old e-commerce benchmarks (₱20/msg) don't
+    // apply here.
+    //   ₱50/msg  → 5pt (excellent)
+    //   ₱100/msg → 4pt
+    //   ₱150/msg → 3pt (the typical PH benchmark)
+    //   ₱200/msg → 2pt
+    //   ₱300/msg → 1pt (expensive)
+    //   ₱500+    → 0pt
     let messageScore: number
-    if (c.spend < 100) {
-      messageScore = 2.5 // ramping — neutral
+    const isRamping = c.spend < 100
+    if (isRamping) {
+      messageScore = 2.5 // ramping — neutral, no real data yet
     } else if (c.messagingConversations === 0 || c.costPerMessage === 0) {
       messageScore = 0   // real spend, zero conversations = not working
     } else {
-      // ₱100/message = 1pt, ₱20/message = 5pt, capped
-      messageScore = Math.max(0, Math.min(5, 100 / c.costPerMessage))
+      // Linear ramp: ₱50 → 5pt, ₱500 → 0pt
+      const cpm = c.costPerMessage
+      messageScore = Math.max(0, Math.min(5, 5 - (cpm - 50) / 90))
     }
     const ctrScore = Math.min(c.ctr / 3, 2)
     const cpmScore = c.cpm > 0 ? Math.min(50 / c.cpm, 2) : 0
     const score    = messageScore + ctrScore + cpmScore
-    const tier: 'winner' | 'mid' | 'loser' = score >= 6 ? 'winner' : score >= 3 ? 'mid' : 'loser'
+    const tier: 'winner' | 'mid' | 'loser' | 'ramping' =
+      isRamping     ? 'ramping' :
+      score >= 6    ? 'winner'  :
+      score >= 3    ? 'mid'     :
+                      'loser'
     const cov = coverageByPhoto.get(c.postPhotoId)!
     return {
       campaignId: c.campaignId,
@@ -617,6 +680,7 @@ export async function analyzeBoostScaler(): Promise<BoostScaler> {
     winners: performances.filter(p => p.tier === 'winner'),
     mids: performances.filter(p => p.tier === 'mid'),
     losers: performances.filter(p => p.tier === 'loser'),
+    ramping: performances.filter(p => p.tier === 'ramping'),
     totalSpend,
     totalReach: performances.reduce((s, p) => s + p.reach, 0),
     totalClicks: performances.reduce((s, p) => s + p.clicks, 0),
@@ -630,7 +694,7 @@ export async function analyzeBoostScaler(): Promise<BoostScaler> {
 }
 
 export function formatBoostScaler(s: BoostScaler): string {
-  if (s.winners.length === 0 && s.mids.length === 0 && s.losers.length === 0) {
+  if (s.winners.length === 0 && s.mids.length === 0 && s.losers.length === 0 && s.ramping.length === 0) {
     return '📊 No boost performance data yet — boosts need spend + reach to be scored.'
   }
 
@@ -663,6 +727,12 @@ export function formatBoostScaler(s: BoostScaler): string {
   if (s.mids.length > 0) {
     lines.push('')
     lines.push(`🟡 _Mid performers: ${s.mids.length}_`)
+  }
+
+  if (s.ramping.length > 0) {
+    lines.push('')
+    lines.push(`⏳ **RAMPING (${s.ramping.length})** — too early to judge (<₱100 spent)`)
+    for (const p of s.ramping.slice(0, 5)) lines.push(renderRow(p))
   }
 
   if (s.topTemplates.length > 0) {

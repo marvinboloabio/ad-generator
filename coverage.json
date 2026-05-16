@@ -60,41 +60,40 @@
     "label": "Light Emotional",
     "postedAt": "2026-05-07T11:00:00.000Z",
     "fbPhotoId": "1372028988280637",
-    "boosted": true
+    "boosted": true,
+    "fbPostId": "527444473995015_1372028988280637"
   },
   {
     "templateKey": "EDUCATIONAL_TEMPLATE",
     "label": "Educational",
     "postedAt": "2026-05-08T00:00:00.000Z",
     "fbPhotoId": "1372029064947296",
-    "boosted": true
+    "boosted": true,
+    "fbPostId": "527444473995015_1372029064947296"
   },
   {
     "templateKey": "AUTHORITY_TEMPLATE",
     "label": "Authority",
     "postedAt": "2026-05-09T01:00:00.000Z",
     "fbPhotoId": "1372029201613949",
-    "boosted": true
+    "boosted": true,
+    "fbPostId": "527444473995015_1372029201613949"
   },
   {
     "templateKey": "COMPARISON_TEMPLATE",
     "label": "Comparison",
     "postedAt": "2026-05-11T00:00:00.000Z",
     "fbPhotoId": "1372029331613936",
-    "boosted": true
+    "boosted": true,
+    "fbPostId": "527444473995015_1372029331613936"
   },
   {
     "templateKey": "RETARGETING_TEMPLATE",
     "label": "Retargeting",
     "postedAt": "2026-05-13T00:00:00.000Z",
     "fbPhotoId": "1372029424947260",
-    "boosted": true
-  },
-  {
-    "templateKey": "DIRECT_RESPONSE_TEMPLATE",
-    "label": "Direct Response",
-    "postedAt": "2026-05-14T00:00:00.000Z",
-    "fbPhotoId": "1372029531613916"
+    "boosted": true,
+    "fbPostId": "527444473995015_1372029424947260"
   },
   {
     "templateKey": "CONVERSATIONAL_TEMPLATE",
@@ -105,18 +104,22 @@
   {
     "templateKey": "PROBLEM_SOLUTION_TEMPLATE",
     "label": "Problem → Solution",
-    "postedAt": "2026-05-18T00:00:00.000Z",
+    "postedAt": "2026-05-14T00:00:00.000Z",
     "fbPhotoId": "1376914911125378",
     "concept": "Kapag may kamatayan, sobrang daming aayusin — Renaissance Park removes that chaos by handling the entire interment program so the family just needs to grieve, not manage logistics.",
-    "heroImageId": "asset_1777438242539_wk8zo"
+    "heroImageId": "asset_1777438242539_wk8zo",
+    "fbPostId": "527444473995015_1376914911125378",
+    "boosted": true
   },
   {
     "templateKey": "OFFER_PROMO_TEMPLATE",
     "label": "Offer / Promo",
-    "postedAt": "2026-05-19T00:00:00.000Z",
+    "postedAt": "2026-05-15T00:00:00.000Z",
     "fbPhotoId": "1376915041125365",
     "concept": "Customers who missed installments and lost their lot can reactivate their plan at Renaissance Park if the lot is still available, giving them a second chance to secure their memorial lot without starting over.",
-    "heroImageId": "asset_1777452110819_x8k4f"
+    "heroImageId": "asset_1777452110819_x8k4f",
+    "fbPostId": "527444473995015_1376915041125365",
+    "boosted": true
   },
   {
     "templateKey": "VISUAL_METAPHOR_TEMPLATE",
@@ -156,7 +159,8 @@
     "postedAt": "2026-05-13T04:00:00.000Z",
     "fbPhotoId": "1376940197789516",
     "concept": "Para sa mga gustong mag-lubong sa private memorial park pero kulang ang ipon, inaalok ng Renaissance Park ang installment plans na nagsisimula sa P240 bawat buwan — walang downpayment, walang annual maintenance fee.",
-    "boosted": true
+    "boosted": true,
+    "fbPostId": "527444473995015_1376940197789516"
   },
   {
     "templateKey": "SOCIAL_PROOF_TEMPLATE",

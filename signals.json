@@ -13,62 +13,6 @@
     "generationTag": "boomer"
   },
   {
-    "id": "8ac66065fe0b6c22c4ec334ee5ac0d96",
-    "text": "COA trims, upholds Meralco claim over Makati hospital power restoration",
-    "source": "news_rss",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:03:42.892Z",
-    "status": "discarded",
-    "fitScore": 3,
-    "toneTag": "quiet_grief",
-    "topicTag": "current_news",
-    "generationTag": "all",
-    "fitReason": "Utility/hospital infrastructure news lacks connection to RP's grief, legacy, or family care values; no earned authority in regulatory disputes.",
-    "discardReason": "low fit score: 3 — Utility/hospital infrastructure news lacks connection to RP's grief, legacy, or family care values; no earned authority in regulatory disputes."
-  },
-  {
-    "id": "3b45e2170a12a125dcf09670169d4ab5",
-    "text": "Malolos cop relieved, detained after CCTV shows alleged wife assault",
-    "source": "news_rss",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:03:42.892Z",
-    "status": "discarded",
-    "fitScore": 3,
-    "toneTag": "quiet_grief",
-    "topicTag": "current_news",
-    "generationTag": "all",
-    "fitReason": "Crime/domestic violence story misaligns with RP's dignity and peace positioning; would risk appearing exploitative of family trauma without clear institutional voice.",
-    "discardReason": "low fit score: 3 — Crime/domestic violence story misaligns with RP's dignity and peace positioning; would risk appearing exploitative of family trauma without clear institutional voice."
-  },
-  {
-    "id": "bfe3788f0ed9287297f5651c21d274d6",
-    "text": "timberwolves vs spurs",
-    "source": "google_trends",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "discarded",
-    "fitScore": 3,
-    "toneTag": "generational_pride",
-    "topicTag": "current_news",
-    "generationTag": "all",
-    "fitReason": "Sports content has zero resonance with RP's grief and legacy-focused audience.",
-    "discardReason": "trending noise: current_news score 3 < 6"
-  },
-  {
-    "id": "3d9aafc166b8773f1558fc2a84f42f22",
-    "text": "76ers vs knicks",
-    "source": "google_trends",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "discarded",
-    "fitScore": 3,
-    "toneTag": "generational_pride",
-    "topicTag": "current_news",
-    "generationTag": "all",
-    "fitReason": "Basketball scores are entirely outside RP's memorial and family planning domain.",
-    "discardReason": "trending noise: current_news score 3 < 6"
-  },
-  {
     "id": "eac3a679212e645ca6627df5f075b673",
     "text": "Woman dresses up as waitress to surprise mom after 4 years without seeing her ❤️❤️",
     "source": "youtube",
@@ -82,20 +26,6 @@
     "fitReason": "Direct OFW-family reunion narrative hits peak emotional resonance for core audience navigating separation and legacy."
   },
   {
-    "id": "84f64ee1d413f1d451717a7b2f640e8a",
-    "text": "China's death-row inmate bids his family last goodbye",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "held",
-    "fitScore": 6,
-    "toneTag": "quiet_grief",
-    "topicTag": "aging_mortality",
-    "generationTag": "boomer",
-    "fitReason": "Final goodbye themes align with mortality but international context limits direct RP authority.",
-    "heldUntil": "2026-05-13T06:17:00.859Z"
-  },
-  {
     "id": "d62ee1c24c2e7fd4edf338493bbc14b8",
     "text": "Kapuso Mo, Jessica Soho: PINAY NANNY, PINABAUNAN NG AMO NG POCKET MONEY BAGO UMUWI SA PILIPINAS",
     "source": "youtube",
@@ -107,20 +37,6 @@
     "topicTag": "ofw_distance",
     "generationTag": "millennial",
     "fitReason": "OFW caregiver story with homecoming touches RP's audience directly around sacrifice and family bonds."
-  },
-  {
-    "id": "52fb2f25b329212cace8440de4dfdfe5",
-    "text": "Fireworks | Maalaala Mo Kaya | Full Episode",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "held",
-    "fitScore": 5,
-    "toneTag": "quiet_grief",
-    "topicTag": "legacy_planning",
-    "generationTag": "all",
-    "fitReason": "General dramatized family story has broad appeal but no direct RP positioning or mortality focus.",
-    "heldUntil": "2026-05-13T06:17:00.859Z"
   },
   {
     "id": "558cc8fc80028699cd60a4aa1b048145",
@@ -160,20 +76,6 @@
     "topicTag": "family_sacrifice",
     "generationTag": "millennial",
     "fitReason": "Mother's Day emotional trilogy resonates with RP audience planning legacy and honoring maternal bonds."
-  },
-  {
-    "id": "a51555a783c19dcf89ab197cd233a831",
-    "text": "Kalendaryo | Maalaala Mo Kaya | Full Episode",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "held",
-    "fitScore": 4,
-    "toneTag": "quiet_grief",
-    "topicTag": "legacy_planning",
-    "generationTag": "all",
-    "fitReason": "Calendar-themed dramatized episode lacks specific mortality or memorial connection to RP's mission.",
-    "heldUntil": "2026-05-13T06:17:00.859Z"
   },
   {
     "id": "4c6614a898d9f500d336bf4953387766",
@@ -220,13 +122,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "held",
-    "fitScore": 6,
+    "status": "approved",
+    "fitScore": 8,
     "toneTag": "parental_sacrifice",
     "topicTag": "family_sacrifice",
-    "generationTag": "all",
-    "fitReason": "Generic father sacrifice content has broad appeal but lacks specific RP positioning or legacy planning context.",
-    "heldUntil": "2026-05-13T06:17:00.859Z"
+    "generationTag": "millennial",
+    "fitReason": "Direct hit on Filipino parental sacrifice narrative; RP has natural authority to frame this within legacy and remembrance, peak reflective timing."
   },
   {
     "id": "a2fc9c3084172ed0822aed4619602fd4",
@@ -234,13 +135,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "held",
-    "fitScore": 6,
+    "status": "approved",
+    "fitScore": 8,
     "toneTag": "parental_sacrifice",
     "topicTag": "family_sacrifice",
-    "generationTag": "all",
-    "fitReason": "Father's love storytelling aligns with RP values but lacks mortality or memorial specificity.",
-    "heldUntil": "2026-05-13T06:17:00.859Z"
+    "generationTag": "millennial",
+    "fitReason": "Paternal unconditional love is core to RP's family values and legacy messaging; audience actively seeking this validation during parent-care years."
   },
   {
     "id": "0e8d58c821f35cb835a63fb63a980ab1",
@@ -248,69 +148,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "held",
-    "fitScore": 6,
+    "status": "approved",
+    "fitScore": 7,
     "toneTag": "aging_softness",
     "topicTag": "family_sacrifice",
-    "generationTag": "all",
-    "fitReason": "Mother's love narrative resonates broadly but generic without legacy or aging care positioning.",
-    "heldUntil": "2026-05-13T06:17:00.859Z"
-  },
-  {
-    "id": "e72746e793a765b4964e5c7192c040f1",
-    "text": "Maling Pagmamahal Horror Stories | True Horror Stories | Pinoy Creepypasta",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "discarded",
-    "fitScore": 3,
-    "toneTag": "quiet_grief",
-    "topicTag": "other",
-    "generationTag": "genz",
-    "fitReason": "Horror content contradicts RP's dignity and peace values; wrong audience intent entirely.",
-    "discardReason": "low fit score: 3 — Horror content contradicts RP's dignity and peace values; wrong audience intent entirely."
-  },
-  {
-    "id": "b9e8d62a52ef9cffbd710ff585a0682b",
-    "text": "BT: Pamilya ng blogger na si Amber Folkman, kinabibiliban dahil sa pagmamahal sa Pilipinas",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "held",
-    "fitScore": 5,
-    "toneTag": "ofw_longing",
-    "topicTag": "ofw_distance",
     "generationTag": "millennial",
-    "fitReason": "Expat family story touches OFW themes but celebrity focus dilutes direct RP audience connection.",
-    "heldUntil": "2026-05-13T06:17:00.859Z"
-  },
-  {
-    "id": "6319bc1d47df265ece2c9b7fd32891b6",
-    "text": "Pamilyang Pilipino - Sarah Geronimo",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "discarded",
-    "fitScore": 3,
-    "toneTag": "generational_pride",
-    "topicTag": "other",
-    "generationTag": "all",
-    "fitReason": "Celebrity song about family lacks specific mortality, legacy planning, or RP's core grief-to-peace journey.",
-    "discardReason": "low fit score: 3 — Celebrity song about family lacks specific mortality, legacy planning, or RP's core grief-to-peace journey."
-  },
-  {
-    "id": "419004bdbadbda004bf9dea7a8e3b472",
-    "text": "Fumiya, labis ang pagmamahal sa kanyang pamilya | Day 73 | PBB OTSO",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "discarded",
-    "fitScore": 3,
-    "toneTag": "generational_pride",
-    "topicTag": "other",
-    "generationTag": "genz",
-    "fitReason": "Reality show contestant emotional moment is entertainment-first; no earned right for RP to speak on family bonds here.",
-    "discardReason": "low fit score: 3 — Reality show contestant emotional moment is entertainment-first; no earned right for RP to speak on family bonds here."
+    "fitReason": "Mother's love resonates deeply with millennial caregivers; RP can anchor this in honoring aging parents and creating lasting remembrance."
   },
   {
     "id": "426bbfd7981ab0ea0fe36d2c1da49859",
@@ -326,7 +169,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "approved",
+    "fitScore": 8,
+    "toneTag": "generational_pride",
+    "topicTag": "family_sacrifice",
+    "generationTag": "all",
+    "fitReason": "Core RP values (dignity, family) with broad Filipino resonance; natural authority as memorial park speaking to what families practice daily."
   },
   {
     "id": "ca132866a012e881e5b809b8a06d61a6",
@@ -334,7 +182,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "approved",
+    "fitScore": 7,
+    "toneTag": "aging_softness",
+    "topicTag": "family_sacrifice",
+    "generationTag": "millennial",
+    "fitReason": "Millennial caregivers recognizing parents' love through actions; reflective timing aligns with legacy planning mindset."
   },
   {
     "id": "08d9a28b8222b36a4f9799ed7731aeb6",
@@ -350,27 +203,17 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
-  },
-  {
-    "id": "701e07e525ad7f3625b0150b6bcfa0aa",
-    "text": "Pet loss grief; the pain explained  | Sarah Hoggan DVM | TEDxTemecula",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "held",
+    "fitScore": 4,
+    "toneTag": "quiet_grief",
+    "topicTag": "grief_loss",
+    "generationTag": "genz",
+    "fitReason": "Pet loss resonates emotionally but tangential to RP's core audience (human mortality/family legacy); feels opportunistic for memorial park.",
+    "heldUntil": "2026-05-16T05:11:37.690Z"
   },
   {
     "id": "a7800ab3ece5bf2fd6629eddbb410003",
     "text": "This dog was crying because it’s owner died 😞 #emotional #dog",
-    "source": "youtube",
-    "cadence": "surface",
-    "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
-  },
-  {
-    "id": "1c2948aa602eddde7189533f7e607c91",
-    "text": "WATCH: Families of Cebu quake victims break down in grief | ANC",
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
@@ -382,7 +225,13 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "held",
+    "fitScore": 4,
+    "toneTag": "quiet_grief",
+    "topicTag": "grief_loss",
+    "generationTag": "genz",
+    "fitReason": "Entertainment about grief rather than lived family experience; feels tangential unless RP positions as cultural commentary on Filipino grief.",
+    "heldUntil": "2026-05-16T05:11:37.690Z"
   },
   {
     "id": "4a4c9b341dc68d860203ef9b86cfb7ae",
@@ -390,7 +239,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "approved",
+    "fitScore": 7,
+    "toneTag": "quiet_grief",
+    "topicTag": "grief_loss",
+    "generationTag": "millennial",
+    "fitReason": "Authentic family ritual (wake, tribute); millennials recognize caregiving/public grief; reflective stage after loss."
   },
   {
     "id": "966ff0a525c4472a6bb45d94cb13a44d",
@@ -398,7 +252,13 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "held",
+    "fitScore": 6,
+    "toneTag": "quiet_grief",
+    "topicTag": "grief_loss",
+    "generationTag": "boomer",
+    "fitReason": "Community mourning signals RP's role in remembrance; direct relevance but limited to specific faith/social circle.",
+    "heldUntil": "2026-05-16T05:11:37.690Z"
   },
   {
     "id": "41e72ff07b41d64cb6bda4cc208393fc",
@@ -414,7 +274,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "approved",
+    "fitScore": 8,
+    "toneTag": "parental_sacrifice",
+    "topicTag": "grief_loss",
+    "generationTag": "millennial",
+    "fitReason": "Public figure modeling family grief normalized; millennials processing parental loss; RP has earned authority in this intimate moment."
   },
   {
     "id": "a9337e79484fe846d12d83d4c764f4f8",
@@ -422,7 +287,12 @@
     "source": "youtube",
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:16:47.262Z",
-    "status": "pending"
+    "status": "approved",
+    "fitScore": 9,
+    "toneTag": "hopeful_legacy",
+    "topicTag": "legacy_planning",
+    "generationTag": "millennial",
+    "fitReason": "Directly mirrors RP's mission (loss→healing→legacy); families actively seeking meaning; highest resonance with memorial park ethos."
   },
   {
     "id": "bfe53f9e5f918e9d0f580409cb50f607",
@@ -444,12 +314,12 @@
     "cadence": "surface",
     "fetchedAt": "2026-05-11T06:19:00.904Z",
     "status": "held",
-    "fitScore": 5,
-    "toneTag": "generational_pride",
+    "fitScore": 6,
+    "toneTag": "parental_sacrifice",
     "topicTag": "celebrity_death",
-    "generationTag": "all",
-    "fitReason": "Broad nostalgia but tangential to RP's mission; opportunistic timing on throwback; requires stretch to connect to legacy/grief planning versus pure entertainment.",
-    "heldUntil": "2026-05-13T06:19:08.256Z"
+    "generationTag": "millennial",
+    "fitReason": "Nostalgic remembrance for millennials; natural RP connection (legacy, honoring the departed) but secondary to direct family mourning.",
+    "heldUntil": "2026-05-16T05:11:37.690Z"
   },
   {
     "id": "6b26bd82e344bdba69756680670c9dea",
@@ -630,5 +500,262 @@
     "topicTag": "family_sacrifice",
     "generationTag": "millennial",
     "fitReason": "Directly aligns with RP values (community, love, appreciation) and resonates with millennials managing family relationships and legacy."
+  },
+  {
+    "id": "5d508edb8832a0d03907fa6b7e3a6261",
+    "text": "pistons vs cavaliers",
+    "source": "google_trends",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "429c4671687cc9b1b24ac919b0884939",
+    "text": "csc",
+    "source": "google_trends",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "eac3a679212e645ca6627df5f075b673",
+    "text": "Woman dresses up as waitress to surprise mom after 4 years without seeing her ❤️❤️",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "d62ee1c24c2e7fd4edf338493bbc14b8",
+    "text": "Kapuso Mo, Jessica Soho: PINAY NANNY, PINABAUNAN NG AMO NG POCKET MONEY BAGO UMUWI SA PILIPINAS",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "52fb2f25b329212cace8440de4dfdfe5",
+    "text": "Fireworks | Maalaala Mo Kaya | Full Episode",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "558cc8fc80028699cd60a4aa1b048145",
+    "text": "PART 2 | OFW NA NAPAUWI, SINORPRESA ANG KANYANG PAMILYA. BUBUHOS ANG INYONG LUHA RITO!",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "286847d180632869a843ec3eb19e2db3",
+    "text": "viral ngaun ang Isang ofw na surprised ang anak sa graduation",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "df11782764240fc993fbcbce05eea73c",
+    "text": "Kwentong Jollibee Mother’s Day Trilogy: Amor",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "a51555a783c19dcf89ab197cd233a831",
+    "text": "Kalendaryo | Maalaala Mo Kaya | Full Episode",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "4c6614a898d9f500d336bf4953387766",
+    "text": "Kapuso Mo, Jessica Soho: Sorpresa ni Itay",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "91e33245285deff9aa9f7ae9d9eb9ce6",
+    "text": "OFW SURPRISE HOME COMING #shorts",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "bfe53f9e5f918e9d0f580409cb50f607",
+    "text": "OFW Nagpanggap na Waiter, Mag-iina NASORPRESA! (The Full Story)*very emotional*",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "550b9dcae6f7cdd28c62bf78d6709388",
+    "text": "Pinoy Reggae – Kariton ni Tatay 🛒 | Tagalog Reggae Father’s Sacrifice [Vol. 2 – Alaala ng Araw-Araw]",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "5db6c5ad2118fd9946cd45eb53c193e0",
+    "text": "SACRIFICE OF FATHER",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "a2fc9c3084172ed0822aed4619602fd4",
+    "text": "Walang kapantay na pagmamahal ng ama |Father's Unconditional love in Filipino | @FilipinoFairyTales",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "0e8d58c821f35cb835a63fb63a980ab1",
+    "text": "Pagmamahal ng Ina | Mother's Love in Filipino | @FilipinoFairyTales",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "e72746e793a765b4964e5c7192c040f1",
+    "text": "Maling Pagmamahal Horror Stories | True Horror Stories | Pinoy Creepypasta",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "b9e8d62a52ef9cffbd710ff585a0682b",
+    "text": "BT: Pamilya ng blogger na si Amber Folkman, kinabibiliban dahil sa pagmamahal sa Pilipinas",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "6319bc1d47df265ece2c9b7fd32891b6",
+    "text": "Pamilyang Pilipino - Sarah Geronimo",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "419004bdbadbda004bf9dea7a8e3b472",
+    "text": "Fumiya, labis ang pagmamahal sa kanyang pamilya | Day 73 | PBB OTSO",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "f1803ecfa4d134a2b924f15bdd42851b",
+    "text": "ESP 1 PAGPAPAKITA NG PAGMAMAHAL AT PAGGALANG SA PAMILYA",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "ca132866a012e881e5b809b8a06d61a6",
+    "text": "Ang pagmamahal sa pamilya, hindi lang sinasabi—ipinapakita sa pag-aalaga. 💙",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "c2123e046c524ee1078eaa4a0d3bc838",
+    "text": "Best gift for her is… #emotional #petlossgrief #memorial #pets #griefislove #hamsters #cute",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "701e07e525ad7f3625b0150b6bcfa0aa",
+    "text": "Pet loss grief; the pain explained  | Sarah Hoggan DVM | TEDxTemecula",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "1c2948aa602eddde7189533f7e607c91",
+    "text": "WATCH: Families of Cebu quake victims break down in grief | ANC",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "f9b26555d1c05c6ece8cd3bbd5844f73",
+    "text": "Max’s Grief | Incognito | Netflix Philippines",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "5c2d1b7bcb09ff6b717f2f481eb9a6b3",
+    "text": "TV Patrol Throwback: PAALAM, Rico Yan (1975-2002)",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "4a4c9b341dc68d860203ef9b86cfb7ae",
+    "text": "Heartbreaking Karaoke Tribute Filipino Singer Holds Back Tears at Family Wake 💔🎤",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "966ff0a525c4472a6bb45d94cb13a44d",
+    "text": "SS MEDIA MINISTRY IS GRIEVING OF THE DEATH OF BRO. BENJIE MENDEZ",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "1e2d87873476786f98ec872cf2e4f3f3",
+    "text": "Small Laude mourns death of her father | PhilSTAR L!fe",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "a9337e79484fe846d12d83d4c764f4f8",
+    "text": "The Canlas Family's Story of Loss, Grief, Healing and Love: KULIT (The JM Canlas Organization)",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "pending"
+  },
+  {
+    "id": "9777f162a49e8dee6f4880ee4a5627cc",
+    "text": "Victims of Drug War: A Broken Family, a Wife's Grief, a Mother's Anguish",
+    "source": "youtube",
+    "cadence": "surface",
+    "fetchedAt": "2026-05-14T05:11:15.200Z",
+    "status": "discarded",
+    "discardReason": "violent/traumatic death or disaster"
   }
 ]
